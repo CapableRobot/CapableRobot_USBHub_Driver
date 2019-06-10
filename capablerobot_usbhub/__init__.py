@@ -80,7 +80,7 @@ class USBHub:
 
         for file in glob.glob("%s/../formats/*.ksy" % this_dir):
             key = os.path.basename(file).replace(".ksy","")
-            self.definition[key] = yaml.load(open(file))
+            self.definition[key] = yaml.load(open(file), Loader=yaml.SafeLoader)
 
         # Extract the dictionary of register addresses to names
         # Flip the keys and values (name will now be key)
