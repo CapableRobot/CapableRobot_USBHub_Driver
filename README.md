@@ -9,6 +9,16 @@ This library has two functions:
 
 	pip3 install pyusb construct pyyaml
 
+On Linux, the the udev permission system will likely prevent normal users from accessing the USB Hub's endpoint which allows for Hub Monitoring, Control, and I2C Briding.  To resolve this, install the provided udev rule:
+
+```
+sudo cp 50-capablerobot-usbhub.rules /etc/udev/rules.d/
+sudo udevadm control --reload
+sudo udevadm trigger
+```
+
+Then unplug and replug your USB Hub.  Note, the provided udev rule allows all system users to access the Hub, but can be changed to a specific user or user group.
+
 ## Working Functionality
 
 - Reading USB Hub registers over USB and decoding of register data.
