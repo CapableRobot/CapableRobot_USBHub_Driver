@@ -7,7 +7,7 @@ This library has two functions:
 
 ## Installing Dependencies
 
-	pip3 install pyusb construct
+	pip3 install pyusb construct pyyaml
 
 ## Working Functionality
 
