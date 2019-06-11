@@ -26,6 +26,7 @@ import yaml
 import struct
 import time
 import logging
+import copy
 
 import usb.core
 import usb.util
@@ -40,6 +41,28 @@ ADDR_USC34 = 0x56
 
 UCS2113_PORT1_CURRENT = 0x00
 UCS2113_PORT2_CURRENT = 0x01
+UCS2113_PORT_STATUS   = 0x02
+UCS2113_INTERRUPT1    = 0x03
+UCS2113_INTERRUPT2    = 0x04
+UCS2113_CURRENT_LIMIT = 0x14
+
+UCS2113_CURRENT_MAP = [
+    530,
+    960,
+    1070,
+    1280,
+    1600,
+    2130,
+    2670,
+    3200
+]
+
+PORT_MAP = ["port2", "port4", "port1", "port3"]
+
+REGISTER_NEEDS_PORT_REMAP = [
+    'port::connection',
+    'port::device_speed'
+]
 
 REQ_OUT = usb.util.build_request_type(
     usb.util.CTRL_OUT,
@@ -50,6 +73,25 @@ REQ_IN = usb.util.build_request_type(
     usb.util.CTRL_IN,
     usb.util.CTRL_TYPE_VENDOR,
     usb.util.CTRL_RECIPIENT_DEVICE)
+
+def register_keys(parsed, sort=True):
+    if sort:
+        keys = sorted(parsed.body.keys())
+    else:
+        parsed.body.keys()
+
+    ## Remove any key which starts with 'reserved' or '_'
+    return list(filter(lambda key: key[0] != '_' and ~key.startswith("reserved") , keys))
+
+def set_bit(value, bit):
+    return value | (1<<bit)
+
+def clear_bit(value, bit):
+    return value & ~(1<<bit)
+
+def get_bit(value, bit):
+    return (value & (1<<bit)) > 0 
+
 
 class USBHub:
 
@@ -149,7 +191,7 @@ class USBHub:
             addr = address + self.REG_BASE_DFT
             length = int(bits / 8)
         else:
-            name = ''
+            name = self.find_name(addr)
 
         if addr == None:
             raise ValueError('Must specify an name or address')
@@ -165,31 +207,33 @@ class USBHub:
         if length != len(data):
             raise ValueError('Incorrect data length')
 
+        shift = 0
+
+        if bits == 8:
+            code = 'B'
+        elif bits == 16:
+            code = 'H'
+        elif bits == 24:
+            ## There is no good way to extract a 3 byte number.
+            ##
+            ## So we tell pack it's a 4 byte number and shift all the data over 1 byte
+            ## so it decodes correctly (as the register defn starts from the MSB)
+            code = 'L'
+            shift = 8
+        elif bits == 32:
+            code = 'L'
+
+        num    = bits_to_bytes(bits)
+        value  = int_from_bytes(data, endian)
+        stream = struct.pack(">HB" + code, *[address, num, value << shift])
+        parsed = self.parse_register(name, stream)
+
         if print:
-            shift = 0
-
-            if bits == 8:
-                code = 'B'
-            elif bits == 16:
-                code = 'H'
-            elif bits == 24:
-                ## There is no good way to extract a 3 byte number.
-                ##
-                ## So we tell pack it's a 4 byte number and shift all the data over 1 byte
-                ## so it decodes correctly (as the register defn starts from the MSB)
-                code = 'L'
-                shift = 8
-            elif bits == 32:
-                code = 'L'
-
-            num    = bits_to_bytes(bits)
-            value  = int_from_bytes(data, endian)
-            stream = struct.pack(">HB" + code, *[address, num, value << shift])
-            self.print_register(registers.parse(stream)[0])
+            self.print_register(parsed)
 
         data.reverse()
         logging.info(" ".join([hexstr(v) for v in data]))
-        return data
+        return data, parsed
 
     def print_register(self, data):
         meta = {}
@@ -207,15 +251,28 @@ class USBHub:
 
             meta[key] = value
 
-        addr = hex(data.code).upper().replace("0X","0x")
+        addr = hex(data.addr).upper().replace("0X","0x")
         # name = type(data.body).__name__
 
-        name = self.find_name(data.code)
+        name = self.find_name(data.addr)
 
         print("%s %s" % (addr, name) )
         for key in sorted(meta.keys()):
             value = meta[key]
             print("       %s : %s" % (key, hex(value)))
+
+    def parse_register(self, name, stream):
+        parsed = registers.parse(stream)[0]
+
+        if name in REGISTER_NEEDS_PORT_REMAP:
+            raw = copy.deepcopy(parsed)
+
+            for key, value in raw.body.items():
+                if key in PORT_MAP:
+                    port = PORT_MAP[int(key.replace("port",""))-1]
+                    parsed.body[port] = value
+
+        return parsed
 
     def currents(self, ports=[1,2,3,4]):
         TO_MA = 13.3
@@ -237,3 +294,116 @@ class USBHub:
             out.append(float(value) * TO_MA)
 
         return out
+
+    def current_limits(self):
+        out = []
+        reg_addr = UCS2113_CURRENT_LIMIT
+
+        for i2c_addr in [ADDR_USC12, ADDR_USC34]:
+            value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr)[0]
+
+            ## Extract Port 1 of this chip
+            out.append(value & 0b111)
+
+            ## Extract Port 2 of this chip
+            out.append((value >> 3) & 0b111)
+
+        return [UCS2113_CURRENT_MAP[key] for key in out]
+
+    def current_alerts(self):
+        out = []
+
+        for idx, i2c_addr in enumerate([ADDR_USC12, ADDR_USC34]):
+
+            value = self.i2c.read_i2c_block_data(i2c_addr, UCS2113_PORT_STATUS)[0]
+
+            if get_bit(value, 7):
+                out.append("ALERT.{}".format(idx*2+1))
+
+            if get_bit(value, 6):
+                out.append("ALERT.{}".format(idx*2+2))
+
+            if get_bit(value, 5):
+                out.append("CC_MODE.{}".format(idx*2+1))
+
+            if get_bit(value, 4):
+                out.append("CC_MODE.{}".format(idx*2+2))
+
+
+            value = self.i2c.read_i2c_block_data(i2c_addr, UCS2113_INTERRUPT1)[0]
+
+            if get_bit(value, 7):
+                out.append("ERROR.{}".format(idx*2+1))
+
+            if get_bit(value, 6):
+                out.append("DISCHARGE.{}".format(idx*2+1))
+
+            if get_bit(value, 5):
+                if idx == 0:
+                    out.append("RESET.12")
+                else:
+                    out.append("RESET.34")
+
+            if get_bit(value, 4):
+                out.append("KEEP_OUT.{}".format(idx*2+1))
+
+            if get_bit(value, 3):
+                if idx == 0:
+                    out.append("DIE_TEMP_HIGH.12")
+                else:
+                    out.append("DIE_TEMP_HIGH.34")
+
+            if get_bit(value, 2):
+                if idx == 0:
+                    out.append("OVER_VOLT.12")
+                else:
+                    out.append("OVER_VOLT.34")
+
+            if get_bit(value, 1):
+                out.append("BACK_BIAS.{}".format(idx*2+1))
+
+            if get_bit(value, 0):
+                out.append("OVER_LIMIT.{}".format(idx*2+1))
+
+
+            value = self.i2c.read_i2c_block_data(i2c_addr, UCS2113_INTERRUPT2)[0]
+
+            if get_bit(value, 7):
+                out.append("ERROR.{}".format(idx*2+2))
+
+            if get_bit(value, 6):
+                out.append("DISCHARGE.{}".format(idx*2+2))
+
+            if get_bit(value, 5):
+                if idx == 0:
+                    out.append("VS_LOW.12")
+                else:
+                    out.append("VS_LOW.34")
+
+            if get_bit(value, 4):
+                out.append("KEEP_OUT.{}".format(idx*2+2))
+
+            if get_bit(value, 3):
+                if idx == 0:
+                    out.append("DIE_TEMP_LOW.12")
+                else:
+                    out.append("DIE_TEMP_LOW.34")
+
+            ## Bit 2 is unimplemented
+
+            if get_bit(value, 1):
+                out.append("BACK_BIAS.{}".format(idx*2+2))
+
+            if get_bit(value, 0):
+                out.append("OVER_LIMIT.{}".format(idx*2+2))
+
+        return out
+
+    def connections(self):
+        _, conn = self.register_read(name='port::connection')
+        return [conn.body[key] == 1 for key in register_keys(conn)]
+
+    def speeds(self):
+        _, speed = self.register_read(name='port::device_speed')
+        speeds = ['none', 'low', 'full', 'high']
+        return [speeds[speed.body[key]] for key in register_keys(speed)]
