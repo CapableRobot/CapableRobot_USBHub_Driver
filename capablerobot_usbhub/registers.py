@@ -26,9 +26,9 @@ from .registers_main import *
 from .registers_port import *
 
 register = Struct(
-    "code" / Int16ub,
+    "addr" / Int16ub,
     "len" / Int8ub,
-    "body" / Switch(this.code, {
+    "body" / Switch(this.addr, {
         0: main_revision,
         12288: main_vendor_id,
         12290: main_product_id,

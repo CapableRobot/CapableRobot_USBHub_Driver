@@ -12,16 +12,14 @@ seq:
 types:
   register:
     seq:
-      - id: time
-        type: f4
-      - id: code
+      - id: addr
         type: u2
       - id: len
         type: u1
       - id: body
         size: len
         type:
-          switch-on: code
+          switch-on: addr
           cases:
             0x0000: 'usb4715_main::revision'
             0x3000: 'usb4715_main::vendor_id'
