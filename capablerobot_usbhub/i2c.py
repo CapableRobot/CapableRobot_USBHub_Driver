@@ -85,7 +85,13 @@ class USBHubI2C(Lockable):
         if freq != 100:
             raise ValueError('Currently only 100 kHz I2C operation is supported')
 
-        self.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_ENTER, value, 0, 0)
+        try:
+            self.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_ENTER, value, 0, 0)
+        except usb.core.USBError:
+            return False
+
+        return True
+        
 
     def write_bytes(self, addr, buf):
         """Write many bytes to the specified device. buf is a bytearray"""
