@@ -7,7 +7,7 @@ This library has two functions:
 
 ## Installing Dependencies
 
-	pip3 install pyusb construct pyyaml
+	pip3 install pyusb construct pyyaml click
 
 On Linux, the the udev permission system will likely prevent normal users from accessing the USB Hub's endpoint which allows for Hub Monitoring, Control, and I2C Briding.  To resolve this, install the provided udev rule:
 

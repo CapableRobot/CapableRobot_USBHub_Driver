@@ -1,3 +1,4 @@
 pyusb
 construct
 pyyaml
+click
