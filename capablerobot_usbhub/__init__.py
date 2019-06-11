@@ -154,24 +154,29 @@ class USBHub:
         self.out_ep, self.in_ep = sorted([ep.bEndpointAddress for ep in interface])
 
         self.i2c = USBHubI2C(self.dev)
-        self.power = USBHubPower(self.i2c)
+        self.power = USBHubPower(self, self.i2c)
 
-    def register_read(self, name=None, addr=None, length=1, print=False):
+    def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
         if name != None:
-            address, bits, endian = self.find(name)
-            addr = address + self.REG_BASE_DFT
+            addr, bits, endian = self.find(name)
+            address = addr + self.REG_BASE_DFT
             length = int(bits / 8)
         else:
             name = self.find_name(addr)
 
-        if addr == None:
+            ## Need to offset the register address for USB access
+            address = addr + self.REG_BASE_DFT
+
+            bits = length * 8
+
+        if address == None:
             raise ValueError('Must specify an name or address')
 
         logging.info("-- register {} ({}) read {} -- ".format(name, hexstr(addr), length))
 
         ## Split 32 bit register address into the 16 bit value & index fields
-        value = addr & 0xFFFF
-        index = addr >> 16
+        value = address & 0xFFFF
+        index = address >> 16
 
         data = list(self.dev.ctrl_transfer(REQ_IN, self.CMD_REG_READ, value, index, length))
 
@@ -196,7 +201,7 @@ class USBHub:
 
         num    = bits_to_bytes(bits)
         value  = int_from_bytes(data, endian)
-        stream = struct.pack(">HB" + code, *[address, num, value << shift])
+        stream = struct.pack(">HB" + code, *[addr, num, value << shift])
         parsed = self.parse_register(name, stream)
 
         if print:
@@ -205,6 +210,32 @@ class USBHub:
         data.reverse()
         logging.info(" ".join([hexstr(v) for v in data]))
         return data, parsed
+
+    def register_write(self, name=None, addr=None, buf=[]):
+        if name != None:
+            addr, bits, endian = self.find(name)
+            address = addr + self.REG_BASE_DFT
+        else:
+            name = self.find_name(addr)
+            ## Need to offset the register address for USB access
+            address = addr + self.REG_BASE_DFT
+
+        if address == None:
+            raise ValueError('Must specify an name or address')
+
+        ## Split 32 bit register address into the 16 bit value & index fields
+        value = address & 0xFFFF
+        index = address >> 16
+
+        try:
+            length = self.dev.ctrl_transfer(REQ_OUT, self.CMD_REG_WRITE, value, index, buf)
+        except usb.core.USBError:
+            raise OSError('Unable to write to regsiter {}'.format(addr))
+        
+        if length != len(buf):
+            raise OSError('Number of bytes written to bus was {}, expected {}'.format(length, len(buf)))
+
+        return length
 
     def print_register(self, data):
         meta = {}
