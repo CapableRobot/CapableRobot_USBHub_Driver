@@ -25,11 +25,15 @@ from .util import *
 ADDR_USC12 = 0x57
 ADDR_USC34 = 0x56
 
+_PORT_CONTROL  = 0x3C00
+
 _PORT1_CURRENT = 0x00
 _PORT2_CURRENT = 0x01
 _PORT_STATUS   = 0x02
 _INTERRUPT1    = 0x03
 _INTERRUPT2    = 0x04
+_CONFIG1       = 0x11
+_CONFIG2       = 0x12
 _CURRENT_LIMIT = 0x14
 
 _CURRENT_MAPPING = [
@@ -45,8 +49,26 @@ _CURRENT_MAPPING = [
 
 class USBHubPower:
 
-    def __init__(self, i2c):
+    def __init__(self, hub, i2c):
+        self.hub = hub
         self.i2c = i2c
+
+    def state(self, ports=[1,2,3,4]):
+        out = []
+
+        for port in ports:
+            data, _ = self.hub.register_read(addr=_PORT_CONTROL+(port-1)*4)
+            out.append(get_bit(data[0], 0))
+
+        return out
+
+    def disable(self, ports=[]):
+        for port in ports:
+            self.hub.register_write(addr=_PORT_CONTROL+(port-1)*4, buf=[0x80])
+
+    def enable(self, ports=[]):
+        for port in ports:
+            self.hub.register_write(addr=_PORT_CONTROL+(port-1)*4, buf=[0x81])
 
     def measurements(self, ports=[1,2,3,4]):
         TO_MA = 13.3
