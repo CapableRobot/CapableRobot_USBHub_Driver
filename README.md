@@ -22,12 +22,12 @@ Then unplug and replug your USB Hub.  Note, the provided udev rule allows all sy
 ## Working Functionality
 
 - Reading USB Hub registers over USB and decoding of register data.
+- Writing USB Hub registers over USB.
 - Reading & writing I2C data thru the Hub.
 - CircuitPython I2C Bridge.  
 
 ## Not Working / Not Implemented Yet
 
-- Writing USB Hub registers over USB.
 - CircuitPython SPI Bridge.
 - CircuitPython GPIO Bridge.
 
