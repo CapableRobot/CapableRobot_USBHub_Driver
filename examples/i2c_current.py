@@ -17,6 +17,6 @@ last = int(time.time() * 1000)
 
 while True:
     now = int(time.time() * 1000)
-    print(str(now - last).rjust(3), " ".join([("%.2f" % v).rjust(7) for v in hub.currents()]))
+    print(str(now - last).rjust(3), " ".join([("%.2f" % v).rjust(7) for v in hub.power.measurements()]))
     last = now
     time.sleep(0.5)
