@@ -106,6 +106,37 @@ class USBHubPower:
 
         return [_CURRENT_MAPPING[key] for key in out]
 
+    def set_limits(self, ports, limit):
+        if limit not in _CURRENT_MAPPING:
+            raise ValueError("Specified current limit of {} is not valid. Limits can be: {}".format(limit, _CURRENT_MAPPING))
+
+        setting = _CURRENT_MAPPING.index(limit)
+        reg_addr = _CURRENT_LIMIT
+
+        if 1 in ports or 2 in ports:
+            value = self.i2c.read_i2c_block_data(ADDR_USC12, reg_addr)[0]
+            value = BitVector(value)
+
+            if 1 in ports:
+                value[0:3] = setting
+
+            if 2 in ports:
+                value[3:6] = setting
+
+            self.i2c.write_bytes(ADDR_USC12, bytes([reg_addr, int(value)]))
+
+        if 3 in ports or 4 in ports:
+            value = self.i2c.read_i2c_block_data(ADDR_USC34, reg_addr)[0]
+            value = BitVector(value)
+
+            if 3 in ports:
+                value[0:3] = setting
+
+            if 4 in ports:
+                value[3:6] = setting
+
+            self.i2c.write_bytes(ADDR_USC34, bytes([reg_addr, int(value)]))
+
     def alerts(self):
         out = []
 
