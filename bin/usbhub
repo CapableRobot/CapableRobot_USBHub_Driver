@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+
+import os, sys, inspect
+import time
+import argparse
+import logging
+
+import click
+import usb
+
+lib_folder = os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0], '..')
+lib_load = os.path.realpath(os.path.abspath(lib_folder))
+
+if lib_load not in sys.path:
+    sys.path.insert(0, lib_load)
+
+
+import capablerobot_usbhub 
+
+hub = capablerobot_usbhub.USBHub()
+hub.i2c.enable()
+
+COL_WIDTH = 12
+PORTS = ["Port {}".format(num) for num in [1,2,3,4]]
+
+
+def _print_row(data):
+    print(*[str(v).rjust(COL_WIDTH) for v in data])
+
+@click.group()
+def cli():
+    pass
+
+@cli.group()
+def power():
+    pass
+
+@power.command()
+@click.option('--loop', default=False, is_flag=True, help='Continue to output data until CTRL-C')
+@click.option('--delay', default=500, help='Delay in ms between current samples')
+def measure(loop, delay):
+
+    if loop:
+        delay_ms = float(delay)/1000
+        start = time.time()
+
+        while True:
+            try:
+                ellapsed = time.time() - start
+                data = hub.power.measurements()
+
+                print("%.2f" % ellapsed, " ".join([("%.2f" % v).rjust(7) for v in data]))
+            except usb.core.USBError:
+                pass
+
+            time.sleep(delay_ms)
+    else:
+        _print_row(PORTS)
+        _print_row(["%.2f mA" % v for v in hub.power.measurements()])
+
+@power.command()
+@click.option('--port', default=None, help='Comma seperated list of ports (1 thru 4) to act upon.')
+@click.option('--ma', default=2670, help='Current limit in mA for specified ports')
+def limits(port, ma):
+    """ Get or set per-port current limits.  With no arguments, will print out active limits. """
+
+    if port is None:
+        _print_row(PORTS)
+        _print_row(["{} mA".format(v) for v in hub.power.limits()])
+    else:
+        try:
+            port = [int(p) for p in port.split(",")]
+            hub.power.set_limits(port, ma)
+        except ValueError as e:
+            print()
+            print(e)
+
+@power.command()
+def alerts():
+    data = hub.power.alerts()
+
+    if len(data) == 0:
+        print()
+        print(" -- no alerts --")
+
+    for alert in data:
+        print(alert)
+
+@power.command()
+@click.option('--port', default=None, help='Comma seperated list of ports (1 thru 4) to act upon.')
+@click.option('--on', default=False, is_flag=True, help='Enable power to the listed ports')
+@click.option('--off', default=False, is_flag=True, help='Disable power to the listed ports')
+def state(port, on, off):
+    """ Get or set per-port power state.  With no arguments, will print out if port power is on or off. """
+
+    if on and off:
+        print("Error : Please specify '--on' or '--off', not both.")
+        return
+
+    if on or off:
+        if port is None:
+            print("Error : Please specify at least one port with '--port' flag")
+            return
+        else:
+            port = [int(p) for p in port.split(",")]
+
+    if on:
+        hub.power.enable(ports=port)
+    elif off:
+        hub.power.disable(ports=port)
+    else:
+        _print_row(PORTS)
+        _print_row(["on" if s else "off" for s in hub.power.state()])
+
+
+if __name__ == '__main__':
+    cli()
