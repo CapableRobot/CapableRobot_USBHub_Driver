@@ -42,3 +42,12 @@ def build_value(start=True, stop=True, nack=True, addr=0):
         flags += 1
 
     return (flags << 8) + addr
+
+def set_bit(value, bit):
+    return value | (1<<bit)
+
+def clear_bit(value, bit):
+    return value & ~(1<<bit)
+
+def get_bit(value, bit):
+    return (value & (1<<bit)) > 0 
