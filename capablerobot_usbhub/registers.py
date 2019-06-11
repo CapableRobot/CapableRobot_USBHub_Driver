@@ -26,7 +26,6 @@ from .registers_main import *
 from .registers_port import *
 
 register = Struct(
-    "time" / Float32b,
     "code" / Int16ub,
     "len" / Int8ub,
     "body" / Switch(this.code, {

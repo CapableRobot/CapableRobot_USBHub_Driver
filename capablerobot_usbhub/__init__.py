@@ -184,7 +184,7 @@ class USBHub:
 
             num    = bits_to_bytes(bits)
             value  = int_from_bytes(data, endian)
-            stream = struct.pack(">fHB" + code, *[time.time(), address, num, value << shift])
+            stream = struct.pack(">HB" + code, *[address, num, value << shift])
             self.print_register(registers.parse(stream)[0])
 
         data.reverse()
@@ -217,7 +217,7 @@ class USBHub:
             value = meta[key]
             print("       %s : %s" % (key, hex(value)))
 
-    def currents(self,ports=[1,2,3,4]):
+    def currents(self, ports=[1,2,3,4]):
         TO_MA = 13.3
 
         out = []
