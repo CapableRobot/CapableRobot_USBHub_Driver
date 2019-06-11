@@ -25,14 +25,14 @@ from .util import *
 ADDR_USC12 = 0x57
 ADDR_USC34 = 0x56
 
-UCS2113_PORT1_CURRENT = 0x00
-UCS2113_PORT2_CURRENT = 0x01
-UCS2113_PORT_STATUS   = 0x02
-UCS2113_INTERRUPT1    = 0x03
-UCS2113_INTERRUPT2    = 0x04
-UCS2113_CURRENT_LIMIT = 0x14
+_PORT1_CURRENT = 0x00
+_PORT2_CURRENT = 0x01
+_PORT_STATUS   = 0x02
+_INTERRUPT1    = 0x03
+_INTERRUPT2    = 0x04
+_CURRENT_LIMIT = 0x14
 
-UCS2113_CURRENT_MAP = [
+_CURRENT_MAPPING = [
     530,
     960,
     1070,
@@ -60,9 +60,9 @@ class USBHubPower:
                 i2c_addr = ADDR_USC34
 
             if port == 1 or port == 3:
-                reg_addr = UCS2113_PORT1_CURRENT
+                reg_addr = _PORT1_CURRENT
             else:
-                reg_addr = UCS2113_PORT2_CURRENT
+                reg_addr = _PORT2_CURRENT
 
             value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr)[0]
             out.append(float(value) * TO_MA)
@@ -71,7 +71,7 @@ class USBHubPower:
 
     def limits(self):
         out = []
-        reg_addr = UCS2113_CURRENT_LIMIT
+        reg_addr = _CURRENT_LIMIT
 
         for i2c_addr in [ADDR_USC12, ADDR_USC34]:
             value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr)[0]
@@ -82,14 +82,14 @@ class USBHubPower:
             ## Extract Port 2 of this chip
             out.append((value >> 3) & 0b111)
 
-        return [UCS2113_CURRENT_MAP[key] for key in out]
+        return [_CURRENT_MAPPING[key] for key in out]
 
     def alerts(self):
         out = []
 
         for idx, i2c_addr in enumerate([ADDR_USC12, ADDR_USC34]):
 
-            value = self.i2c.read_i2c_block_data(i2c_addr, UCS2113_PORT_STATUS)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, _PORT_STATUS)[0]
 
             if get_bit(value, 7):
                 out.append("ALERT.{}".format(idx*2+1))
@@ -104,7 +104,7 @@ class USBHubPower:
                 out.append("CC_MODE.{}".format(idx*2+2))
 
 
-            value = self.i2c.read_i2c_block_data(i2c_addr, UCS2113_INTERRUPT1)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, _INTERRUPT1)[0]
 
             if get_bit(value, 7):
                 out.append("ERROR.{}".format(idx*2+1))
@@ -140,7 +140,7 @@ class USBHubPower:
                 out.append("OVER_LIMIT.{}".format(idx*2+1))
 
 
-            value = self.i2c.read_i2c_block_data(i2c_addr, UCS2113_INTERRUPT2)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, _INTERRUPT2)[0]
 
             if get_bit(value, 7):
                 out.append("ERROR.{}".format(idx*2+2))
