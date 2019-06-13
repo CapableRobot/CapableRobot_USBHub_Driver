@@ -86,7 +86,7 @@ class USBHubPower:
             else:
                 reg_addr = _PORT2_CURRENT
 
-            value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr, number=1)[0]
             out.append(float(value) * TO_MA)
 
         return out
@@ -96,7 +96,7 @@ class USBHubPower:
         reg_addr = _CURRENT_LIMIT
 
         for i2c_addr in [ADDR_USC12, ADDR_USC34]:
-            value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr, number=1)[0]
 
             ## Extract Port 1 of this chip
             out.append(value & 0b111)
@@ -114,7 +114,7 @@ class USBHubPower:
         reg_addr = _CURRENT_LIMIT
 
         if 1 in ports or 2 in ports:
-            value = self.i2c.read_i2c_block_data(ADDR_USC12, reg_addr)[0]
+            value = self.i2c.read_i2c_block_data(ADDR_USC12, reg_addr, number=1)[0]
             value = BitVector(value)
 
             if 1 in ports:
@@ -126,7 +126,7 @@ class USBHubPower:
             self.i2c.write_bytes(ADDR_USC12, bytes([reg_addr, int(value)]))
 
         if 3 in ports or 4 in ports:
-            value = self.i2c.read_i2c_block_data(ADDR_USC34, reg_addr)[0]
+            value = self.i2c.read_i2c_block_data(ADDR_USC34, reg_addr, number=1)[0]
             value = BitVector(value)
 
             if 3 in ports:
@@ -142,7 +142,7 @@ class USBHubPower:
 
         for idx, i2c_addr in enumerate([ADDR_USC12, ADDR_USC34]):
 
-            value = self.i2c.read_i2c_block_data(i2c_addr, _PORT_STATUS)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, _PORT_STATUS, number=1)[0]
 
             if get_bit(value, 7):
                 out.append("ALERT.{}".format(idx*2+1))
@@ -157,7 +157,7 @@ class USBHubPower:
                 out.append("CC_MODE.{}".format(idx*2+2))
 
 
-            value = self.i2c.read_i2c_block_data(i2c_addr, _INTERRUPT1)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, _INTERRUPT1, number=1)[0]
 
             if get_bit(value, 7):
                 out.append("ERROR.{}".format(idx*2+1))
@@ -193,7 +193,7 @@ class USBHubPower:
                 out.append("OVER_LIMIT.{}".format(idx*2+1))
 
 
-            value = self.i2c.read_i2c_block_data(i2c_addr, _INTERRUPT2)[0]
+            value = self.i2c.read_i2c_block_data(i2c_addr, _INTERRUPT2, number=1)[0]
 
             if get_bit(value, 7):
                 out.append("ERROR.{}".format(idx*2+2))
