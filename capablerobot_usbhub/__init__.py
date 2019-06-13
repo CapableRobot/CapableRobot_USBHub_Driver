@@ -152,17 +152,29 @@ class USBHub:
         else:
             raise ValueError("Unknown register name : %s" % name)
 
+    @property
+    def device(self):
+        return self.devices[self._active_device]
+
+    def activate(self, idx):
+        if idx >= len(self.devices):
+            raise ValueError("Can't attach to Hub with index {} as there only {} were detected".format(idx, len(self.devices)))
+
+        self._active_device = idx        
+
+
     def attach(self, vendor=ID_VENDOR, product=ID_PRODUCT):
-        self.dev = usb.core.find(idVendor=vendor, idProduct=product)
+        self.devices = list(usb.core.find(idVendor=vendor, idProduct=product, find_all=True))
+        self._active_device = 0
 
-        if self.dev  is None:
-            raise ValueError('Device not found')
+        if self.devices is None or len(self.devices) == 0:
+            raise ValueError('No USB Hub was found')
 
-        cfg = self.dev.get_active_configuration()
-        interface = cfg[(2,0)]
-        self.out_ep, self.in_ep = sorted([ep.bEndpointAddress for ep in interface])
+        # cfg = self.dev.get_active_configuration()
+        # interface = cfg[(2,0)]
+        # self.out_ep, self.in_ep = sorted([ep.bEndpointAddress for ep in interface])
 
-        self.i2c = USBHubI2C(self.dev)
+        self.i2c = USBHubI2C(self)
         self.power = USBHubPower(self, self.i2c)
 
     def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
@@ -190,7 +202,7 @@ class USBHub:
         value = address & 0xFFFF
         index = address >> 16
 
-        data = list(self.dev.ctrl_transfer(REQ_IN, self.CMD_REG_READ, value, index, length))
+        data = list(self.device.ctrl_transfer(REQ_IN, self.CMD_REG_READ, value, index, length))
 
         if length != len(data):
             raise ValueError('Incorrect data length')
@@ -241,7 +253,7 @@ class USBHub:
         index = address >> 16
 
         try:
-            length = self.dev.ctrl_transfer(REQ_OUT, self.CMD_REG_WRITE, value, index, buf)
+            length = self.device.ctrl_transfer(REQ_OUT, self.CMD_REG_WRITE, value, index, buf)
         except usb.core.USBError:
             raise OSError('Unable to write to regsiter {}'.format(addr))
         
@@ -301,18 +313,27 @@ class USBHub:
         return [speeds[speed.body[key]] for key in register_keys(speed)]
 
 
-    @property
-    def id(self):
-        data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
-        data = [char for char in data]
+    def id(self, all=False):
+        def get_id():
+            data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
+            data = [char for char in data]
 
-        if len(data) == 6:
-            data = data[0:3] + [0xFF, 0xFE] + data[3:6]
+            if len(data) == 6:
+                data = data[0:3] + [0xFF, 0xFE] + data[3:6]
 
-        eui = ''.join(["%0.2X" % v for v in data])
+            eui = ''.join(["%0.2X" % v for v in data])
 
-        ## TODO : read revision data from EEPROM
-        return ['CRR3C4', eui]
+            ## TODO : read revision data from EEPROM
+            return ['CRR3C4', eui]
+
+        if all:
+            out = []
+            for idx, dev in enumerate(self.devices):
+                self.activate(idx)
+                out.append(get_id())
+            return out
+        else:
+            return get_id()
 
     def _data_state(self):
         return self.i2c.read_i2c_block_data(MCP_I2C_ADDR, MCP_REG_GPIO, 1)[0]

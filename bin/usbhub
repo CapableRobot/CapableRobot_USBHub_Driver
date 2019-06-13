@@ -28,14 +28,22 @@ def _print_row(data):
     print(*[str(v).rjust(COL_WIDTH) for v in data])
 
 @click.group()
-def cli():
-    pass
+@click.option('--hub', 'idx', default=0, help='Index of Hub for command to operate on')
+def cli(idx):
+    hub.activate(idx)
+    print()
 
 @cli.command()
-def id():
+@click.option('--all', default=False, is_flag=True, help='Look for more than one Hub')
+def id(all):
     """Print serial number for attached hub"""
-    print()
-    print("Revision / Serial : {} / {}".format(*hub.id))
+
+    if all:
+        print("Revision / Serial")
+        for idx,dev in enumerate(hub.id(all)):
+            print("    Hub {} : {} / {}".format(idx, *dev))
+    else:
+        print("Revision / Serial : {} / {}".format(*hub.id()))
     
 @cli.group()
 def data():
@@ -109,7 +117,6 @@ def limits(port, ma):
             port = [int(p) for p in port.split(",")]
             hub.power.set_limits(port, ma)
         except ValueError as e:
-            print()
             print(e)
 
 @power.command()
@@ -117,7 +124,6 @@ def alerts():
     data = hub.power.alerts()
 
     if len(data) == 0:
-        print()
         print(" -- no alerts --")
 
     for alert in data:
