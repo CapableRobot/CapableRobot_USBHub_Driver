@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import logging
+
 import usb.core
 import usb.util
 
@@ -88,6 +90,7 @@ class USBHubI2C(Lockable):
         try:
             self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_ENTER, value, 0, 0)
         except usb.core.USBError:
+            logging.warn("USB Error in I2C Enable")
             return False
 
         return True
@@ -124,7 +127,7 @@ class USBHubI2C(Lockable):
         # Passed in address is in 7-bit form, so shift it
         # and add the start / stop flags
         i2c_addr = addr << 1
-        cmd = build_value(addr=i2c_addr)
+        cmd = build_value(addr=i2c_addr, nack=False)
 
         try:
             length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register], self.TIMEOUT)
