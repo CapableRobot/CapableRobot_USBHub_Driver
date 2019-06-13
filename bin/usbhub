@@ -32,6 +32,37 @@ def cli():
     pass
 
 @cli.group()
+def data():
+    pass
+
+@data.command()
+@click.option('--port', default=None, help='Comma seperated list of ports (1 thru 4) to act upon.')
+@click.option('--on', default=False, is_flag=True, help='Enable data to the listed ports')
+@click.option('--off', default=False, is_flag=True, help='Disable data to the listed ports')
+def state(port, on, off):
+    """ Get or set per-port data state.  With no arguments, will print out if port data is on or off. """
+
+    if on and off:
+        print("Error : Please specify '--on' or '--off', not both.")
+        return
+
+    if on or off:
+        if port is None:
+            print("Error : Please specify at least one port with '--port' flag")
+            return
+        else:
+            port = [int(p) for p in port.split(",")]
+
+    if on:
+        hub.data_enable(ports=port)
+    elif off:
+        hub.data_disable(ports=port)
+    else:
+        _print_row(PORTS)
+        _print_row(hub.data_state())
+        _print_row(hub.speeds())
+
+@cli.group()
 def power():
     pass
 
