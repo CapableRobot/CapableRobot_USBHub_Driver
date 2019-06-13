@@ -55,6 +55,10 @@ REQ_IN = usb.util.build_request_type(
     usb.util.CTRL_TYPE_VENDOR,
     usb.util.CTRL_RECIPIENT_DEVICE)
 
+EEPROM_I2C_ADDR = 0x50
+EEPROM_EUI_ADDR = 0xFA
+EEPROM_EUI_BYTES = 0xFF - 0xFA + 1
+
 MCP_I2C_ADDR = 0x20
 MCP_REG_GPIO = 0x09
 
@@ -296,9 +300,22 @@ class USBHub:
         speeds = ['none', 'low', 'full', 'high']
         return [speeds[speed.body[key]] for key in register_keys(speed)]
 
+
+    @property
+    def id(self):
+        data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
+        data = [char for char in data]
+
+        if len(data) == 6:
+            data = data[0:3] + [0xFF, 0xFE] + data[3:6]
+
+        eui = ''.join(["%0.2X" % v for v in data])
+
+        ## TODO : read revision data from EEPROM
+        return ['CRR3C4', eui]
+
     def _data_state(self):
         return self.i2c.read_i2c_block_data(MCP_I2C_ADDR, MCP_REG_GPIO, 1)[0]
-
 
     def data_state(self):
         value = self._data_state()

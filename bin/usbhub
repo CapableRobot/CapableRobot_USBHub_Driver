@@ -31,6 +31,12 @@ def _print_row(data):
 def cli():
     pass
 
+@cli.command()
+def id():
+    """Print serial number for attached hub"""
+    print()
+    print("Revision / Serial : {} / {}".format(*hub.id))
+    
 @cli.group()
 def data():
     pass
