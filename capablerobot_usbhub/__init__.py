@@ -55,6 +55,9 @@ REQ_IN = usb.util.build_request_type(
     usb.util.CTRL_TYPE_VENDOR,
     usb.util.CTRL_RECIPIENT_DEVICE)
 
+MCP_I2C_ADDR = 0x20
+MCP_REG_GPIO = 0x09
+
 def register_keys(parsed, sort=True):
     if sort:
         keys = sorted(parsed.body.keys())
@@ -292,3 +295,27 @@ class USBHub:
         _, speed = self.register_read(name='port::device_speed')
         speeds = ['none', 'low', 'full', 'high']
         return [speeds[speed.body[key]] for key in register_keys(speed)]
+
+        def _data_state(self):
+        return self.i2c.read_i2c_block_data(MCP_I2C_ADDR, MCP_REG_GPIO, 1)[0]
+
+
+    def data_state(self):
+        value = self._data_state()
+        return ["off" if get_bit(value, idx) else "on" for idx in [7,6,5,4]]
+
+    def data_enable(self, ports=[]):
+        value = self._data_state()
+
+        for port in ports:
+            value = clear_bit(value, 8-port)
+
+        self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
+
+    def data_disable(self, ports=[]):
+        value = self._data_state()
+
+        for port in ports:
+            value = set_bit(value, 8-port)
+            
+        self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
