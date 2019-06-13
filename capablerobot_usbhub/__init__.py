@@ -296,7 +296,7 @@ class USBHub:
         speeds = ['none', 'low', 'full', 'high']
         return [speeds[speed.body[key]] for key in register_keys(speed)]
 
-        def _data_state(self):
+    def _data_state(self):
         return self.i2c.read_i2c_block_data(MCP_I2C_ADDR, MCP_REG_GPIO, 1)[0]
 
 
