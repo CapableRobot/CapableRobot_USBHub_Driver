@@ -154,14 +154,16 @@ def alerts():
 @click.option('--port', default=None, help='Comma seperated list of ports (1 thru 4) to act upon.')
 @click.option('--on', default=False, is_flag=True, help='Enable power to the listed ports')
 @click.option('--off', default=False, is_flag=True, help='Disable power to the listed ports')
-def state(port, on, off):
+@click.option('--reset', default=False, is_flag=True, help='Reset power to the listed ports (cycles power off and back on)')
+@click.option('--delay', default=500, help='Delay in ms between off and on states during reset action')
+def state(port, on, off, reset, delay):
     """ Get or set per-port power state.  With no arguments, will print out if port power is on or off. """
 
     if on and off:
         print("Error : Please specify '--on' or '--off', not both.")
         return
 
-    if on or off:
+    if on or off or reset:
         if port is None:
             print("Error : Please specify at least one port with '--port' flag")
             return
@@ -172,6 +174,10 @@ def state(port, on, off):
         hub.power.enable(ports=port)
     elif off:
         hub.power.disable(ports=port)
+    elif reset:
+        hub.power.disable(ports=port)
+        time.sleep(float(delay)/1000)
+        hub.power.enable(ports=port)
     else:
         _print_row(PORTS)
         _print_row(["on" if s else "off" for s in hub.power.state()])
