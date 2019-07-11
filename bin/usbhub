@@ -39,8 +39,8 @@ def setup_logging():
     logger.addHandler(handler)
 
 @click.group()
-@click.option('--hub', 'idx', default=0, help='Index of Hub for command to operate on')
-@click.option('--verbose', default=False, is_flag=True, help='Increase logging level')
+@click.option('--hub', 'idx', default=0, help='Index of Hub for command to operate on.')
+@click.option('--verbose', default=False, is_flag=True, help='Increase logging level.')
 def cli(idx, verbose):
     global hub
 
@@ -55,7 +55,7 @@ def cli(idx, verbose):
     print()
 
 @cli.command()
-@click.option('--all', default=False, is_flag=True, help='Look for more than one Hub')
+@click.option('--all', default=False, is_flag=True, help='Look for more than one Hub.')
 def id(all):
     """Print serial number for attached hub"""
 
@@ -68,12 +68,13 @@ def id(all):
     
 @cli.group()
 def data():
+    """Sub-commands for data control & monitoring"""
     pass
 
 @data.command()
 @click.option('--port', default=None, help='Comma seperated list of ports (1 thru 4) to act upon.')
-@click.option('--on', default=False, is_flag=True, help='Enable data to the listed ports')
-@click.option('--off', default=False, is_flag=True, help='Disable data to the listed ports')
+@click.option('--on', default=False, is_flag=True, help='Enable data to the listed ports.')
+@click.option('--off', default=False, is_flag=True, help='Disable data to the listed ports.')
 def state(port, on, off):
     """ Get or set per-port data state.  With no arguments, will print out if port data is on or off. """
 
@@ -99,13 +100,15 @@ def state(port, on, off):
 
 @cli.group()
 def power():
+    """Sub-commands for power control & monitoring"""
     pass
 
 @power.command()
-@click.option('--loop', default=False, is_flag=True, help='Continue to output data until CTRL-C')
-@click.option('--delay', default=500, help='Delay in ms between current samples')
+@click.option('--loop', default=False, is_flag=True, help='Continue to output data until CTRL-C.')
+@click.option('--delay', default=500, help='Delay in ms between current samples.')
 def measure(loop, delay):
-
+    """ Reports single-shot or continuous power measurements. """
+    
     if loop:
         delay_ms = float(delay)/1000
         start = time.time()
@@ -126,7 +129,7 @@ def measure(loop, delay):
 
 @power.command()
 @click.option('--port', default=None, help='Comma seperated list of ports (1 thru 4) to act upon.')
-@click.option('--ma', default=2670, help='Current limit in mA for specified ports')
+@click.option('--ma', default=2670, help='Current limit in mA for specified ports.')
 def limits(port, ma):
     """ Get or set per-port current limits.  With no arguments, will print out active limits. """
 
@@ -142,6 +145,7 @@ def limits(port, ma):
 
 @power.command()
 def alerts():
+    """ Print any power alerts on the downstream ports. """
     data = hub.power.alerts()
 
     if len(data) == 0:
@@ -152,10 +156,10 @@ def alerts():
 
 @power.command()
 @click.option('--port', default=None, help='Comma seperated list of ports (1 thru 4) to act upon.')
-@click.option('--on', default=False, is_flag=True, help='Enable power to the listed ports')
-@click.option('--off', default=False, is_flag=True, help='Disable power to the listed ports')
-@click.option('--reset', default=False, is_flag=True, help='Reset power to the listed ports (cycles power off and back on)')
-@click.option('--delay', default=500, help='Delay in ms between off and on states during reset action')
+@click.option('--on', default=False, is_flag=True, help='Enable power to the listed ports.')
+@click.option('--off', default=False, is_flag=True, help='Disable power to the listed ports.')
+@click.option('--reset', default=False, is_flag=True, help='Reset power to the listed ports (cycles power off & on).')
+@click.option('--delay', default=500, help='Delay in ms between off and on states during reset action.')
 def state(port, on, off, reset, delay):
     """ Get or set per-port power state.  With no arguments, will print out if port power is on or off. """
 
