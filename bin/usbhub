@@ -17,8 +17,7 @@ if lib_load not in sys.path:
 
 import capablerobot_usbhub 
 
-hub = capablerobot_usbhub.USBHub()
-hub.i2c.enable()
+
 
 COL_WIDTH = 12
 PORTS = ["Port {}".format(num) for num in [1,2,3,4]]
@@ -27,10 +26,32 @@ PORTS = ["Port {}".format(num) for num in [1,2,3,4]]
 def _print_row(data):
     print(*[str(v).rjust(COL_WIDTH) for v in data])
 
+def setup_logging():
+    fmtstr = '%(asctime)s | %(filename)25s:%(lineno)4d %(funcName)20s() | %(levelname)7s | %(message)s'
+    formatter = logging.Formatter(fmtstr)
+
+    handler   = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+
 @click.group()
 @click.option('--hub', 'idx', default=0, help='Index of Hub for command to operate on')
-def cli(idx):
+@click.option('--verbose', default=False, is_flag=True, help='Increase logging level')
+def cli(idx, verbose):
+    global hub
+
+    if verbose:
+        setup_logging()
+        logging.debug("Logging Setup")
+
+    hub = capablerobot_usbhub.USBHub()
+    hub.i2c.enable()
     hub.activate(idx)
+
     print()
 
 @cli.command()
@@ -94,7 +115,7 @@ def measure(loop, delay):
                 ellapsed = time.time() - start
                 data = hub.power.measurements()
 
-                print("%.2f" % ellapsed, " ".join([("%.2f" % v).rjust(7) for v in data]))
+                print("%.3f" % ellapsed, " ".join([("%.2f" % v).rjust(7) for v in data]))
             except usb.core.USBError:
                 pass
 
