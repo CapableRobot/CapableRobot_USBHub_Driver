@@ -36,8 +36,6 @@ from .i2c import USBHubI2C
 from .power import USBHubPower
 from .util import *
 
-logging.getLogger().setLevel(logging.INFO)
-
 PORT_MAP = ["port2", "port4", "port1", "port3"]
 
 REGISTER_NEEDS_PORT_REMAP = [
@@ -86,7 +84,7 @@ class USBHub:
     REG_BASE_DFT = 0xBF800000
     REG_BASE_ALT = 0xBFD20000
 
-    TIMEOUT = 10000
+    TIMEOUT = 1000
 
     def __init__(self, vendor=None, product=None):
         if vendor == None:
@@ -164,8 +162,10 @@ class USBHub:
 
 
     def attach(self, vendor=ID_VENDOR, product=ID_PRODUCT):
+        logging.debug("Looking for USB Hubs")
         self.devices = list(usb.core.find(idVendor=vendor, idProduct=product, find_all=True))
         self._active_device = 0
+        logging.debug("Found {} Hub(s)".format(len(self.devices)))
 
         if self.devices is None or len(self.devices) == 0:
             raise ValueError('No USB Hub was found')
@@ -176,6 +176,7 @@ class USBHub:
 
         self.i2c = USBHubI2C(self)
         self.power = USBHubPower(self, self.i2c)
+        logging.debug("I2C and Power classes setup")
 
     def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
         if name != None:
@@ -195,8 +196,6 @@ class USBHub:
 
         ## Need to offset the register address for USB access
         address = addr + self.REG_BASE_DFT
-
-        logging.debug("-- register {} ({}) read {} -- ".format(name, hexstr(addr), length))
 
         ## Split 32 bit register address into the 16 bit value & index fields
         value = address & 0xFFFF
@@ -235,7 +234,7 @@ class USBHub:
             self.print_register(parsed)
 
         data.reverse()
-        logging.debug("  [" + " ".join([hexstr(v) for v in data]) + "]")
+        logging.debug("{} [0x{}] read {} [{}]".format(name, hexstr(addr), length, " ".join(["0x"+hexstr(v) for v in data])))
         return data, parsed
 
     def register_write(self, name=None, addr=None, buf=[]):
