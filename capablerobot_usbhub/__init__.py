@@ -131,14 +131,14 @@ class USBHub:
 
         return 'big'
 
-    def find_name(self, register):
+    def find_register_name_by_addr(self, register):
         for name, value in self.mapping.items():
             if value[0] == register:
                 return name
 
         raise ValueError("Unknown register address : %s" % hex(register))
 
-    def find(self, name):
+    def find_register_by_name(self, name):
 
         if name in self.mapping:
             register, bits, endian = self.mapping[name]
@@ -180,11 +180,11 @@ class USBHub:
 
     def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
         if name != None:
-            addr, bits, endian = self.find(name)
+            addr, bits, endian = self.find_register_by_name(name)
             length = int(bits / 8)
         else:
             try:
-                name = self.find_name(addr)
+                name = self.find_register_name_by_addr(addr)
             except ValueError as e:
                 logging.error(e)
                 print = False
@@ -239,7 +239,7 @@ class USBHub:
 
     def register_write(self, name=None, addr=None, buf=[]):
         if name != None:
-            addr, _, _ = self.find(name)
+            addr, _, _ = self.find_register_by_name(name)
         
         if addr == None:
             raise ValueError('Must specify an name or address')
@@ -280,7 +280,7 @@ class USBHub:
         addr = hex(data.addr).upper().replace("0X","0x")
         # name = type(data.body).__name__
 
-        name = self.find_name(data.addr)
+        name = self.find_register_name_by_addr(data.addr)
 
         print("%s %s" % (addr, name) )
         for key in sorted(meta.keys()):
