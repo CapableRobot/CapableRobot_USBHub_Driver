@@ -106,12 +106,12 @@ class USBHub:
         # Add number of bytes to the mapping table, extracted from the YAML file
         #
         # Register names (keys) have the 'DEVICE_' prefix removed from them
-        # but still have the '::' and '_' seperators
+        # but still have the '::' and '_' separators
         mapping = self.definition['usb4715']['types']['register']['seq'][-1]['type']['cases']
         mapping = {v:k for k,v in mapping.items()}
         self.mapping = {k.replace('usb4715_',''):[v,self.get_register_length(k),self.get_register_endian(k)] for k,v in mapping.items()}
 
-    # Function to extract and sum the number of bits in each register defintion.
+    # Function to extract and sum the number of bits in each register definition.
     # For this to function correctly, all lengths MUST be in bit lengths
     # Key is split into namespace to correctly locate the right sequence field
     def get_register_length(self, key):
@@ -158,7 +158,7 @@ class USBHub:
         if idx >= len(self.devices):
             raise ValueError("Can't attach to Hub with index {} as there only {} were detected".format(idx, len(self.devices)))
 
-        self._active_device = idx        
+        self._active_device = idx
 
 
     def attach(self, vendor=ID_VENDOR, product=ID_PRODUCT):
@@ -240,7 +240,7 @@ class USBHub:
     def register_write(self, name=None, addr=None, buf=[]):
         if name != None:
             addr, _, _ = self.find_register_by_name(name)
-        
+
         if addr == None:
             raise ValueError('Must specify an name or address')
 
@@ -254,8 +254,8 @@ class USBHub:
         try:
             length = self.device.ctrl_transfer(REQ_OUT, self.CMD_REG_WRITE, value, index, buf)
         except usb.core.USBError:
-            raise OSError('Unable to write to regsiter {}'.format(addr))
-        
+            raise OSError('Unable to write to register {}'.format(addr))
+
         if length != len(buf):
             raise OSError('Number of bytes written to bus was {}, expected {}'.format(length, len(buf)))
 
@@ -278,8 +278,6 @@ class USBHub:
             meta[key] = value
 
         addr = hex(data.addr).upper().replace("0X","0x")
-        # name = type(data.body).__name__
-
         name = self.find_register_name_by_addr(data.addr)
 
         print("%s %s" % (addr, name) )
@@ -300,7 +298,7 @@ class USBHub:
 
         return parsed
 
-    
+
 
     def connections(self):
         _, conn = self.register_read(name='port::connection')
@@ -354,5 +352,5 @@ class USBHub:
 
         for port in ports:
             value = set_bit(value, 8-port)
-            
+
         self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
