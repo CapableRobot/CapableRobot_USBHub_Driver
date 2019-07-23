@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
 
+# The MIT License (MIT)
+#
+# Copyright (c) 2019 Chris Osterwood for Capable Robot Components
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 import os, sys, inspect
 import time
 import argparse
@@ -15,7 +37,7 @@ if lib_load not in sys.path:
     sys.path.insert(0, lib_load)
 
 
-import capablerobot_usbhub 
+import capablerobot_usbhub
 
 
 
@@ -65,7 +87,7 @@ def id(all):
             print("    Hub {} : {} / {}".format(idx, *dev))
     else:
         print("Revision / Serial : {} / {}".format(*hub.id()))
-    
+
 @cli.group()
 def data():
     """Sub-commands for data control & monitoring"""
@@ -108,7 +130,7 @@ def power():
 @click.option('--delay', default=500, help='Delay in ms between current samples.')
 def measure(loop, delay):
     """ Reports single-shot or continuous power measurements. """
-    
+
     if loop:
         delay_ms = float(delay)/1000
         start = time.time()
