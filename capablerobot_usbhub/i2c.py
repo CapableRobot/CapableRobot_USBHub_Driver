@@ -33,8 +33,6 @@ class USBHubI2C(Lockable):
     CMD_I2C_WRITE = 0x71
     CMD_I2C_READ  = 0x72
 
-    TIMEOUT = 100
-
     def __init__(self, hub):
         self.hub = hub
         self.enabled = False
@@ -77,7 +75,7 @@ class USBHubI2C(Lockable):
         cmd = build_value(addr=(addr << 1))
 
         try:
-            length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, list(buf), self.TIMEOUT)
+            length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, list(buf))
         except usb.core.USBError:
             raise OSError('Unable to setup I2C write.  Likely that slave address is incorrect')
 
@@ -103,7 +101,7 @@ class USBHubI2C(Lockable):
         cmd = build_value(addr=i2c_addr, nack=False)
 
         try:
-            length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register], self.TIMEOUT)
+            length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register])
         except usb.core.USBError:
             raise OSError('Unable to setup I2C read.  Likely that slave address is incorrect')
 
