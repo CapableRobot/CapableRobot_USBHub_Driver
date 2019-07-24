@@ -190,12 +190,11 @@ class USBHub:
         self.power = USBHubPower(self, self.i2c)
         logging.debug("I2C and Power classes created")
 
-        for idx in range(len(self.devices)):
-            logging.debug("Enabling I2C for Hub at index {}".format(idx))
-            self.activate(idx)
-            self.i2c.enable()
+        ## Create null cache for device serial numbers
+        self._device_ids = None
 
-        self._device_keys = [d[1][-self.KEY_LENGTH:] for d in self.id(all=True)]
+        ## Store last for digits of serial numbers for key-based Hub lookup
+        self._device_keys = [d[1][-self.KEY_LENGTH:] for d in self.id()]
 
     def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
         if name != None:
@@ -329,7 +328,7 @@ class USBHub:
         return [speeds[speed.body[key]] for key in register_keys(speed)]
 
 
-    def id(self, all=False):
+    def id(self):
         def get_id():
             data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
             data = [char for char in data]
@@ -342,14 +341,16 @@ class USBHub:
             ## TODO : read revision data from EEPROM
             return ['CRR3C4', eui]
 
-        if all:
-            out = []
-            for idx, dev in enumerate(self.devices):
+        if self._device_ids is None:
+            self._device_ids = []
+
+            for idx in range(len(self.devices)):
                 self.activate(idx)
-                out.append(get_id())
-            return out
-        else:
-            return get_id()
+                self.i2c.enable()
+                self._device_ids.append(get_id())
+
+        return self._device_ids
+
 
     def _data_state(self):
         return self.i2c.read_i2c_block_data(MCP_I2C_ADDR, MCP_REG_GPIO, 1)[0]

@@ -98,7 +98,7 @@ def cli(key, verbose):
 def id():
     """Print serial number for attached hub"""
 
-    devices = hub.id(all=True)
+    devices = hub.id()
 
     if len(devices) > 1:
         print("Revision / Serial")
