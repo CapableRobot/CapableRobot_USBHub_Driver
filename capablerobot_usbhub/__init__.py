@@ -188,7 +188,12 @@ class USBHub:
 
         self.i2c = USBHubI2C(self)
         self.power = USBHubPower(self, self.i2c)
-        logging.debug("I2C and Power classes setup")
+        logging.debug("I2C and Power classes created")
+
+        for idx in range(len(self.devices)):
+            logging.debug("Enabling I2C for Hub at index {}".format(idx))
+            self.activate(idx)
+            self.i2c.enable()
 
         self._device_keys = [d[1][-self.KEY_LENGTH:] for d in self.id(all=True)]
 

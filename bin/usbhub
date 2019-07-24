@@ -71,7 +71,6 @@ def cli(key, verbose):
         logging.debug("Logging Setup")
 
     hub = capablerobot_usbhub.USBHub()
-    hub.i2c.enable()
 
     if len(key) == hub.KEY_LENGTH:
         ## CLI parameter is the string key of the hub, so directly use it
