@@ -61,9 +61,9 @@ def setup_logging():
     logger.addHandler(handler)
 
 @click.group()
-@click.option('--hub', 'idx', default=0, help='Index of Hub for command to operate on.')
+@click.option('--hub', 'key', default='0', help='Numeric index or key (last 4 characters of serial number) of Hub for command to operate on.')
 @click.option('--verbose', default=False, is_flag=True, help='Increase logging level.')
-def cli(idx, verbose):
+def cli(key, verbose):
     global hub
 
     if verbose:
@@ -72,7 +72,26 @@ def cli(idx, verbose):
 
     hub = capablerobot_usbhub.USBHub()
     hub.i2c.enable()
-    hub.activate(idx)
+
+    if len(key) == hub.KEY_LENGTH:
+        ## CLI parameter is the string key of the hub, so directly use it
+        result = hub.activate(key)
+
+        if result is None:
+            print("Cannot locate Hub with serial number ending in '{}'".format(key))
+            sys.exit(0)
+
+    else:
+        ## CLI parameter is the index of the hub, so convert to int
+        try:
+            result = hub.activate(int(key))
+        except ValueError:
+            print("Cannot locate Hub at index '{}' as it is not an integer".format(key))
+            sys.exit(0)
+
+        if result is None:
+            print("Can't attach to Hub with index {} as there only {} were detected".format(key, len(hub.devices)))
+            sys.exit(0)
 
     print()
 

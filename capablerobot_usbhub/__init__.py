@@ -86,6 +86,8 @@ class USBHub:
 
     TIMEOUT = 1000
 
+    KEY_LENGTH = 4
+
     def __init__(self, vendor=None, product=None):
         if vendor == None:
             vendor = self.ID_VENDOR
@@ -154,11 +156,21 @@ class USBHub:
     def device(self):
         return self.devices[self._active_device]
 
-    def activate(self, idx):
-        if idx >= len(self.devices):
-            raise ValueError("Can't attach to Hub with index {} as there only {} were detected".format(idx, len(self.devices)))
+    def activate(self, key):
+
+        if isinstance(key, int):
+            idx = key
+
+            if idx >= len(self.devices):
+                idx = None
+        else:
+            try:
+                idx = self._device_keys.index(key)
+            except ValueError:
+                idx = None
 
         self._active_device = idx
+        return self._active_device
 
 
     def attach(self, vendor=ID_VENDOR, product=ID_PRODUCT):
@@ -177,6 +189,8 @@ class USBHub:
         self.i2c = USBHubI2C(self)
         self.power = USBHubPower(self, self.i2c)
         logging.debug("I2C and Power classes setup")
+
+        self._device_keys = [d[1][-self.KEY_LENGTH:] for d in self.id(all=True)]
 
     def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
         if name != None:
