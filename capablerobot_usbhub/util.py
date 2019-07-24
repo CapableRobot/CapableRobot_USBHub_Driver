@@ -20,6 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import usb.util
+
+REQ_OUT = usb.util.build_request_type(
+    usb.util.CTRL_OUT,
+    usb.util.CTRL_TYPE_VENDOR,
+    usb.util.CTRL_RECIPIENT_DEVICE)
+
+REQ_IN = usb.util.build_request_type(
+    usb.util.CTRL_IN,
+    usb.util.CTRL_TYPE_VENDOR,
+    usb.util.CTRL_RECIPIENT_DEVICE)
+
+class Lockable():
+    """An object that must be locked to prevent collisions on a microcontroller resource."""
+    _locked = False
+
+    def try_lock(self):
+        """Attempt to grab the lock. Return True on success, False if the lock is already taken."""
+        if self._locked:
+            return False
+        self._locked = True
+        return True
+
+    def unlock(self):
+        """Release the lock so others may use the resource."""
+        if self._locked:
+            self._locked = False
+        else:
+            raise ValueError("Not locked")
+
 def bits_to_bytes(bits):
     return int(bits / 8)
 
@@ -50,7 +80,7 @@ def clear_bit(value, bit):
     return value & ~(1<<bit)
 
 def get_bit(value, bit):
-    return (value & (1<<bit)) > 0 
+    return (value & (1<<bit)) > 0
 
 import math
 
@@ -76,11 +106,10 @@ class BitVector:
         if isinstance(item, slice):
             if item.step not in (1, None):
                 raise ValueError('only step=1 supported')
-                
+
             return (self._val>>item.start)&(2**(item.stop-item.start+1)-1)
         else:
             raise TypeError('non-slice indexing not supported')
 
     def __int__(self):
         return self._val
-        

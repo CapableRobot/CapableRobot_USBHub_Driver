@@ -27,34 +27,6 @@ import usb.util
 
 from .util import *
 
-REQ_OUT = usb.util.build_request_type(
-    usb.util.CTRL_OUT,
-    usb.util.CTRL_TYPE_VENDOR,
-    usb.util.CTRL_RECIPIENT_DEVICE)
-
-REQ_IN = usb.util.build_request_type(
-    usb.util.CTRL_IN,
-    usb.util.CTRL_TYPE_VENDOR,
-    usb.util.CTRL_RECIPIENT_DEVICE)
-
-class Lockable():
-    """An object that must be locked to prevent collisions on a microcontroller resource."""
-    _locked = False
-
-    def try_lock(self):
-        """Attempt to grab the lock. Return True on success, False if the lock is already taken."""
-        if self._locked:
-            return False
-        self._locked = True
-        return True
-
-    def unlock(self):
-        """Release the lock so others may use the resource."""
-        if self._locked:
-            self._locked = False
-        else:
-            raise ValueError("Not locked")
-
 class USBHubI2C(Lockable):
 
     CMD_I2C_ENTER = 0x70
@@ -68,7 +40,6 @@ class USBHubI2C(Lockable):
         self.enabled = False
 
     def enable(self, freq=100):
-        self.enabled = True
 
         value = 0x3131
         # if freq == 100:
@@ -93,8 +64,10 @@ class USBHubI2C(Lockable):
             logging.warn("USB Error in I2C Enable")
             return False
 
+        self.enabled = True
+
         return True
-        
+
 
     def write_bytes(self, addr, buf):
         """Write many bytes to the specified device. buf is a bytearray"""
