@@ -77,16 +77,17 @@ def cli(idx, verbose):
     print()
 
 @cli.command()
-@click.option('--all', default=False, is_flag=True, help='Look for more than one Hub.')
-def id(all):
+def id():
     """Print serial number for attached hub"""
 
-    if all:
+    devices = hub.id(all=True)
+
+    if len(devices) > 1:
         print("Revision / Serial")
-        for idx,dev in enumerate(hub.id(all)):
+        for idx,dev in enumerate(devices):
             print("    Hub {} : {} / {}".format(idx, *dev))
     else:
-        print("Revision / Serial : {} / {}".format(*hub.id()))
+        print("Revision / Serial : {} / {}".format(*(devices[0])))
 
 @cli.group()
 def data():
