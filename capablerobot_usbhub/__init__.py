@@ -74,9 +74,6 @@ class USBHub:
 
     CMD_REG_WRITE = 0x03
     CMD_REG_READ  = 0x04
-    CMD_I2C_ENTER = 0x70
-    CMD_I2C_WRITE = 0x71
-    CMD_I2C_READ  = 0x72
 
     ID_PRODUCT = 0x494C
     ID_VENDOR  = 0x0424
