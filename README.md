@@ -25,10 +25,10 @@ Then unplug and replug your USB Hub.  Note, the provided udev rule allows all sy
 - Writing USB Hub registers over USB.
 - Reading & writing I2C data thru the Hub.
 - CircuitPython I2C Bridge.  
+- CircuitPython SPI Bridge.
 
 ## Not Working / Not Implemented Yet
 
-- CircuitPython SPI Bridge.
 - CircuitPython GPIO Bridge.
 
 ## Contributing 
