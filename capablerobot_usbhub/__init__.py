@@ -57,6 +57,8 @@ REQ_IN = usb.util.build_request_type(
 EEPROM_I2C_ADDR = 0x50
 EEPROM_EUI_ADDR = 0xFA
 EEPROM_EUI_BYTES = 0xFF - 0xFA + 1
+EEPROM_SKU_ADDR = 0x00
+EEPROM_SKU_BYTES = 0x06
 
 MCP_I2C_ADDR = 0x20
 MCP_REG_GPIO = 0x09
@@ -327,19 +329,28 @@ class USBHub:
         speeds = ['none', 'low', 'full', 'high']
         return [speeds[speed.body[key]] for key in register_keys(speed)]
 
+    def serial(self):
+        data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
+        data = [char for char in data]
+
+        if len(data) == 6:
+            data = data[0:3] + [0xFF, 0xFE] + data[3:6]
+
+        return ''.join(["%0.2X" % v for v in data])
+
+    def sku(self):
+        data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_SKU_ADDR, EEPROM_SKU_BYTES)
+        
+        ## Prototype units didn't have the PCB SKU programmed into the EEPROM
+        ## If EEPROM location is empty, we assume we're interacting with that hardware
+        if data[0] == 0 or data[0] == 255:
+            return 'CRR3C4'
+
+        return ''.join([chr(char) for char in data])
 
     def id(self):
         def get_id():
-            data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
-            data = [char for char in data]
-
-            if len(data) == 6:
-                data = data[0:3] + [0xFF, 0xFE] + data[3:6]
-
-            eui = ''.join(["%0.2X" % v for v in data])
-
-            ## TODO : read revision data from EEPROM
-            return ['CRR3C4', eui]
+            return [self.sku(), self.serial()]
 
         if self._device_ids is None:
             self._device_ids = []
