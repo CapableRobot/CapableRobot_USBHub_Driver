@@ -357,7 +357,6 @@ class USBHub:
 
             for idx in range(len(self.devices)):
                 self.activate(idx)
-                self.i2c.enable()
                 self._device_ids.append(get_id())
 
         return self._device_ids

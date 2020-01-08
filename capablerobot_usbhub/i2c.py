@@ -37,7 +37,12 @@ class USBHubI2C(Lockable):
         self.hub = hub
         self.enabled = False
 
+        self.enable()
+
     def enable(self, freq=100):
+
+        if self.enabled:
+            return True
 
         value = 0x3131
         # if freq == 100:
