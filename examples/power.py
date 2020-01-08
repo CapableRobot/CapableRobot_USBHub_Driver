@@ -11,7 +11,7 @@ logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('USB Hub Status')
 logger.setLevel(logging.DEBUG)
 
-import capablerobot_usbhub, power
+import capablerobot_usbhub
 
 hub = capablerobot_usbhub.USBHub()
 
