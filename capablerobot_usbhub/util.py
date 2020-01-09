@@ -59,9 +59,6 @@ def int_from_bytes(xbytes, endian='big'):
 def hexstr(value):
     return hex(value).upper().replace("0X","")
 
-def split(value):
-    return [value & 0xFF, value >> 8]
-
 def build_value(start=True, stop=True, nack=True, addr=0):
     flags = 0
     if nack:
@@ -81,6 +78,14 @@ def clear_bit(value, bit):
 
 def get_bit(value, bit):
     return (value & (1<<bit)) > 0
+
+def set_bit_to(value, bit, state):
+    if state:
+        return value | (1<<bit)
+        
+    return value & ~(1<<bit)
+
+
 
 import math
 

@@ -34,6 +34,7 @@ import usb.util
 from .registers import registers
 from .i2c import USBHubI2C
 from .spi import USBHubSPI
+from .gpio import USBHubGPIO
 from .power import USBHubPower
 from .util import *
 
@@ -188,6 +189,7 @@ class USBHub:
 
         self.i2c = USBHubI2C(self)
         self.spi = USBHubSPI(self)
+        self.gpio = USBHubGPIO(self)
 
         self.power = USBHubPower(self, self.i2c)
         logging.debug("I2C and Power classes created")

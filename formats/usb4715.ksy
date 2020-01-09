@@ -5,6 +5,7 @@ meta:
   imports:
     - usb4715_main
     - usb4715_port
+    - usb4715_gpio
 seq:
   - id: registers
     type: register
@@ -22,6 +23,15 @@ types:
           switch-on: addr
           cases:
             0x0000: 'usb4715_main::revision'
+            0x0900: 'usb4715_gpio::output_enable'
+            0x0910: 'usb4715_gpio::input_enable'
+            0x0920: 'usb4715_gpio::output'
+            0x0930: 'usb4715_gpio::input'
+            0x0940: 'usb4715_gpio::pull_up'
+            0x0950: 'usb4715_gpio::pull_down'
+            0x0960: 'usb4715_gpio::open_drain'
+            0x09E0: 'usb4715_gpio::debounce'
+            0x09F0: 'usb4715_gpio::debounce_time'
             0x3000: 'usb4715_main::vendor_id'
             0x3002: 'usb4715_main::product_id'
             0x3004: 'usb4715_main::device_id'

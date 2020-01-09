@@ -24,12 +24,13 @@ Then unplug and replug your USB Hub.  Note, the provided udev rule allows all sy
 - Reading USB Hub registers over USB and decoding of register data.
 - Writing USB Hub registers over USB.
 - Reading & writing I2C data thru the Hub.
+- Python API to control and read the two GPIO pins.
 - CircuitPython I2C Bridge.  
 - CircuitPython SPI Bridge.
 
 ## Not Working / Not Implemented Yet
 
-- CircuitPython GPIO Bridge.
+_No known errata at this time_
 
 ## Contributing 
 
