@@ -32,6 +32,10 @@ Then unplug and replug your USB Hub.  Note, the provided udev rule allows all sy
 
 _No known errata at this time_
 
+## Usage & Examples
+
+The [examples](https://github.com/CapableRobot/CapableRobot_USBHub_Driver/tree/master/examples) folder has some code samples of how to use this Python API to control the Programmable USB Hub.  There is also another [example repository](https://github.com/CapableRobot/CapableRobot_USBHub_CircuitPython_Examples) which includes additional host-side code as well as examples of customizing behavior via changing the Hub's firmware.
+
 ## Contributing 
 
 Contributions are welcome! Please read our 
