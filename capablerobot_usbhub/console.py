@@ -30,14 +30,14 @@ import logging
 import click
 import usb
 
-lib_folder = os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0], '..')
-lib_load = os.path.realpath(os.path.abspath(lib_folder))
-
-if lib_load not in sys.path:
-    sys.path.insert(0, lib_load)
-
-
-import capablerobot_usbhub
+# This allows this file to be run directly and still be able to import the
+# driver library -- as relative imports do not work without running as a package.  
+# If this library is installed, the else path is followed and relative imports work as expected.
+if __name__ == '__main__' and __package__ is None:
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from capablerobot_usbhub.main import USBHub
+else:
+    from .main import USBHub
 
 
 
@@ -70,7 +70,7 @@ def cli(key, verbose):
         setup_logging()
         logging.debug("Logging Setup")
 
-    hub = capablerobot_usbhub.USBHub()
+    hub = USBHub()
 
     if len(key) == hub.KEY_LENGTH:
         ## CLI parameter is the string key of the hub, so directly use it
@@ -228,5 +228,8 @@ def state(port, on, off, reset, delay):
         _print_row(["on" if s else "off" for s in hub.power.state()])
 
 
-if __name__ == '__main__':
+def main():
     cli()
+    
+if __name__ == '__main__':
+    main()
