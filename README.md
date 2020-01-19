@@ -1,13 +1,15 @@
 # Capable Robot CircuitPython USBHub Bridge
 
-This library has two functions:
+This package has two functions:
 
 - It provides access to internal state of the Capable Robot USB Hub, allowing you to monitor and control the Hub from an upstream computer.
-- It creates a transparent CircuitPython Bridge, allowing unmodified CircuitPython code to run on the host computer and interact with I2C devices attached to the USB Hub.
+- It creates a transparent CircuitPython Bridge, allowing unmodified CircuitPython code to run on the host computer and interact with I2C & SPI devices attached to the USB Hub.
 
-## Installing Dependencies
+## Installing
 
-	pip3 install pyusb construct pyyaml click
+Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
+
+	pip install capablerobot_usbhub
 
 On Linux, the the udev permission system will likely prevent normal users from accessing the USB Hub's endpoint which allows for Hub Monitoring, Control, and I2C Briding.  To resolve this, install the provided udev rule:
 
@@ -18,6 +20,10 @@ sudo udevadm trigger
 ```
 
 Then unplug and replug your USB Hub.  Note, the provided udev rule allows all system users to access the Hub, but can be changed to a specific user or user group.
+
+## Usage & Examples
+
+The [examples](https://github.com/CapableRobot/CapableRobot_USBHub_Driver/tree/master/examples) folder has some code samples of how to use this Python API to control the Programmable USB Hub.  There is also another [example repository](https://github.com/CapableRobot/CapableRobot_USBHub_CircuitPython_Examples) which includes additional host-side code as well as examples of customizing behavior via changing the Hub's firmware.
 
 ## Working Functionality
 
@@ -31,10 +37,6 @@ Then unplug and replug your USB Hub.  Note, the provided udev rule allows all sy
 ## Not Working / Not Implemented Yet
 
 _No known errata at this time_
-
-## Usage & Examples
-
-The [examples](https://github.com/CapableRobot/CapableRobot_USBHub_Driver/tree/master/examples) folder has some code samples of how to use this Python API to control the Programmable USB Hub.  There is also another [example repository](https://github.com/CapableRobot/CapableRobot_USBHub_CircuitPython_Examples) which includes additional host-side code as well as examples of customizing behavior via changing the Hub's firmware.
 
 ## Contributing 
 
