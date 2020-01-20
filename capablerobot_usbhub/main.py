@@ -101,7 +101,7 @@ class USBHub:
         this_dir = os.path.dirname(os.path.abspath(__file__))
         self.definition = {}
 
-        for file in glob.glob("%s/../formats/*.ksy" % this_dir):
+        for file in glob.glob("%s/formats/*.ksy" % this_dir):
             key = os.path.basename(file).replace(".ksy","")
             self.definition[key] = yaml.load(open(file), Loader=yaml.SafeLoader)
 
