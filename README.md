@@ -1,9 +1,11 @@
-# Capable Robot CircuitPython USBHub Bridge
+# Capable Robot Programmable USB Hub Driver 
 
 This package has two functions:
 
 - It provides access to internal state of the Capable Robot USB Hub, allowing you to monitor and control the Hub from an upstream computer.
 - It creates a transparent CircuitPython Bridge, allowing unmodified CircuitPython code to run on the host computer and interact with I2C & SPI devices attached to the USB Hub.
+
+![Capable Robot logo & image of Programmable USB Hub](https://capablerobot.com/products/programmable-usb-hub/logo-usbhub-header.jpg "Capable Robot logo & image of Programmable USB Hub")
 
 ## Installing
 
@@ -11,7 +13,9 @@ Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
 
 	pip install capablerobot_usbhub
 
-On Linux, the the udev permission system will likely prevent normal users from accessing the USB Hub's endpoint which allows for Hub Monitoring, Control, and I2C Briding.  To resolve this, install the provided udev rule:
+This driver requires Python 3.6 or newer.
+
+On Linux, the the udev permission system will likely prevent normal users from accessing the USB Hub's endpoint which allows for Hub Monitoring, Control, and I2C Bridging.  To resolve this, install the provided udev rule:
 
 ```
 sudo cp 50-capablerobot-usbhub.rules /etc/udev/rules.d/
@@ -31,8 +35,8 @@ The [examples](https://github.com/CapableRobot/CapableRobot_USBHub_Driver/tree/m
 - Writing USB Hub registers over USB.
 - Reading & writing I2C data thru the Hub.
 - Python API to control and read the two GPIO pins.
-- CircuitPython I2C Bridge.  
-- CircuitPython SPI Bridge.
+- CircuitPython I2C Bridge to the rear I2C1 port.  
+- CircuitPython SPI Bridge to the internal mikroBUS header.
 
 ## Not Working / Not Implemented Yet
 
