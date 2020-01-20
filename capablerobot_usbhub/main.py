@@ -27,6 +27,7 @@ import struct
 import time
 import logging
 import copy
+import subprocess
 
 import usb.core
 import usb.util
@@ -386,3 +387,25 @@ class USBHub:
             value = set_bit(value, 8-port)
 
         self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
+
+    def print_permission_instructions(self):
+        message = ['User has insufficient permissions to access the USB Hub.']
+
+        ## Check that this linux distro has 'udevadm' before instructing 
+        ## the user on how to install udev rule.
+        check = subprocess.run(["which", "udevadm"], stdout=subprocess.PIPE)
+        if check.stdout.decode("utf-8")[0] == "/":
+            folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+            message += [
+                'Please run the following commands, then unplug and re-plug your Hub.',
+                '',
+                "sudo cp {}/50-capablerobot-usbhub.rules /etc/udev/rules.d/".format(folder),
+                'sudo udevadm control --reload',
+                'sudo udevadm trigger'
+            ]
+
+        print()
+        for line in message:
+            print(line)
+        print()

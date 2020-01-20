@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 import logging
+import sys
 
 import usb.core
 import usb.util
@@ -107,8 +108,12 @@ class USBHubI2C(Lockable):
 
         try:
             length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register])
-        except usb.core.USBError:
-            raise OSError('Unable to setup I2C read.  Likely that slave address is incorrect')
+        except usb.core.USBError as e:
+            if "permission" in str(e):
+                self.hub.print_permission_instructions()
+                sys.exit(0)
+            else:
+                raise OSError('Unable to setup I2C read.  Likely that slave address is incorrect')
 
         if length != 1:
             raise OSError('Unable to setup I2C read')
