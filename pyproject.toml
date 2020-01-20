@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "capablerobot_usbhub"
-version = "0.2.0"
+version = "0.2.1"
 description = "Host side driver for the Capable Robot Programmable USB Hub"
 authors = ["Chris Osterwood <osterwood@capablerobot.com>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/CapableRobot/CapableRobot_USBHub_Driver"
 keywords = ["usb", "circuitpython", "hardware"]
-include = ["examples", "LICENSE", "CODE_OF_CONDUCT.md", "50-capablerobot-usbhub.rules", "requirements.txt"]
+include = ["examples", "formats", "LICENSE", "CODE_OF_CONDUCT.md", "50-capablerobot-usbhub.rules", "requirements.txt"]
 
 [tool.poetry.dependencies]
 python = "^3.6"
