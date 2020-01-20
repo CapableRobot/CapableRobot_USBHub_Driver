@@ -34,7 +34,7 @@ import usb
 # driver library -- as relative imports do not work without running as a package.  
 # If this library is installed, the else path is followed and relative imports work as expected.
 if __name__ == '__main__' and __package__ is None:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     from capablerobot_usbhub.main import USBHub
 else:
     from .main import USBHub
