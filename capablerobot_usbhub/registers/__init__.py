@@ -22,9 +22,9 @@
 
 from construct import *
 
-from .registers_main import *
-from .registers_port import *
-from .registers_gpio import *
+from .main import *
+from .port import *
+from .gpio import *
 
 register = Struct(
     "addr" / Int16ub,
