@@ -5,7 +5,7 @@ This package has two functions:
 - It provides access to internal state of the Capable Robot USB Hub, allowing you to monitor and control the Hub from an upstream computer.
 - It creates a transparent CircuitPython Bridge, allowing unmodified CircuitPython code to run on the host computer and interact with I2C & SPI devices attached to the USB Hub.
 
-![Capable Robot logo & image of Programmable USB Hub](https://capablerobot.com/products/programmable-usb-hub/logo-usbhub-header.jpg "Capable Robot logo & image of Programmable USB Hub")
+![Capable Robot logo & image of Programmable USB Hub](https://raw.githubusercontent.com/CapableRobot/CapableRobot_USBHub_Driver/master/images/logo-usbhub-header.jpg "Capable Robot logo & image of Programmable USB Hub")
 
 ## Installing
 
