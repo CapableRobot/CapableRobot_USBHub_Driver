@@ -86,6 +86,15 @@ def set_bit_to(value, bit, state):
     return value & ~(1<<bit)
 
 
+def register_keys(parsed, sort=True):
+    if sort:
+        keys = sorted(parsed.body.keys())
+    else:
+        parsed.body.keys()
+
+    ## Remove any key which starts with 'reserved' or '_'
+    return list(filter(lambda key: key[0] != '_' and ~key.startswith("reserved") , keys))
+
 
 import math
 

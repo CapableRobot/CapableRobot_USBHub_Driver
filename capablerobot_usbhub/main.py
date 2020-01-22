@@ -33,10 +33,7 @@ import usb.core
 import usb.util
 
 from .registers import registers
-from .i2c import USBHubI2C
-from .spi import USBHubSPI
-from .gpio import USBHubGPIO
-from .power import USBHubPower
+from .device import USBHubDevice
 from .util import *
 
 PORT_MAP = ["port2", "port4", "port1", "port3"]
@@ -46,47 +43,10 @@ REGISTER_NEEDS_PORT_REMAP = [
     'port::device_speed'
 ]
 
-REQ_OUT = usb.util.build_request_type(
-    usb.util.CTRL_OUT,
-    usb.util.CTRL_TYPE_VENDOR,
-    usb.util.CTRL_RECIPIENT_DEVICE)
-
-REQ_IN = usb.util.build_request_type(
-    usb.util.CTRL_IN,
-    usb.util.CTRL_TYPE_VENDOR,
-    usb.util.CTRL_RECIPIENT_DEVICE)
-
-EEPROM_I2C_ADDR = 0x50
-EEPROM_EUI_ADDR = 0xFA
-EEPROM_EUI_BYTES = 0xFF - 0xFA + 1
-EEPROM_SKU_ADDR = 0x00
-EEPROM_SKU_BYTES = 0x06
-
-MCP_I2C_ADDR = 0x20
-MCP_REG_GPIO = 0x09
-
-def register_keys(parsed, sort=True):
-    if sort:
-        keys = sorted(parsed.body.keys())
-    else:
-        parsed.body.keys()
-
-    ## Remove any key which starts with 'reserved' or '_'
-    return list(filter(lambda key: key[0] != '_' and ~key.startswith("reserved") , keys))
-
-
 class USBHub:
-
-    CMD_REG_WRITE = 0x03
-    CMD_REG_READ  = 0x04
 
     ID_PRODUCT = 0x494C
     ID_VENDOR  = 0x0424
-
-    REG_BASE_DFT = 0xBF800000
-    REG_BASE_ALT = 0xBFD20000
-
-    TIMEOUT = 1000
 
     KEY_LENGTH = 4
 
@@ -96,6 +56,10 @@ class USBHub:
         if product == None:
             product = self.ID_PRODUCT
 
+        self._active_device = None
+        self._device_keys = []
+
+        self.devices = {}
         self.attach(vendor, product)
 
         this_dir = os.path.dirname(os.path.abspath(__file__))
@@ -158,131 +122,40 @@ class USBHub:
     def device(self):
         return self.devices[self._active_device]
 
-    def activate(self, key):
+    def activate(self, selector):
 
-        if isinstance(key, int):
-            idx = key
-
-            if idx >= len(self.devices):
-                idx = None
+        if isinstance(selector, int):
+            if selector >= len(self.devices):
+                key = None
+            else:
+                key = self._device_keys[selector]
+    
         else:
-            try:
-                idx = self._device_keys.index(key)
-            except ValueError:
-                idx = None
+            if selector in self._device_keys:
+                key = selector
+            else:
+                key = None
 
-        self._active_device = idx
+        self._active_device = key
         return self._active_device
 
 
     def attach(self, vendor=ID_VENDOR, product=ID_PRODUCT):
         logging.debug("Looking for USB Hubs")
-        self.devices = list(usb.core.find(idVendor=vendor, idProduct=product, find_all=True))
-        self._active_device = 0
-        logging.debug("Found {} Hub(s)".format(len(self.devices)))
+        handles = list(usb.core.find(idVendor=vendor, idProduct=product, find_all=True))
 
-        if self.devices is None or len(self.devices) == 0:
+        logging.debug("Found {} Hub(s)".format(len(handles)))
+
+        if handles is None or len(handles) == 0:
             raise ValueError('No USB Hub was found')
 
-        # cfg = self.dev.get_active_configuration()
-        # interface = cfg[(2,0)]
-        # self.out_ep, self.in_ep = sorted([ep.bEndpointAddress for ep in interface])
+        for handle in handles:
+            device = USBHubDevice(self, handle)
+            self.devices[device.key] = device
 
-        self.i2c = USBHubI2C(self)
-        self.spi = USBHubSPI(self)
-        self.gpio = USBHubGPIO(self)
-
-        self.power = USBHubPower(self, self.i2c)
-        logging.debug("I2C and Power classes created")
-
-        ## Create null cache for device serial numbers
-        self._device_ids = None
-
-        ## Store last for digits of serial numbers for key-based Hub lookup
-        self._device_keys = [d[1][-self.KEY_LENGTH:] for d in self.id()]
-
-    def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
-        if name != None:
-            addr, bits, endian = self.find_register_by_name(name)
-            length = int(bits / 8)
-        else:
-            try:
-                name = self.find_register_name_by_addr(addr)
-            except ValueError as e:
-                logging.error(e)
-                print = False
-
-            bits = length * 8
-
-        if addr == None:
-            raise ValueError('Must specify an name or address')
-
-        ## Need to offset the register address for USB access
-        address = addr + self.REG_BASE_DFT
-
-        ## Split 32 bit register address into the 16 bit value & index fields
-        value = address & 0xFFFF
-        index = address >> 16
-
-        data = list(self.device.ctrl_transfer(REQ_IN, self.CMD_REG_READ, value, index, length))
-
-        if length != len(data):
-            raise ValueError('Incorrect data length')
-
-        shift = 0
-
-        if bits == 8:
-            code = 'B'
-        elif bits == 16:
-            code = 'H'
-        elif bits == 24:
-            ## There is no good way to extract a 3 byte number.
-            ##
-            ## So we tell pack it's a 4 byte number and shift all the data over 1 byte
-            ## so it decodes correctly (as the register defn starts from the MSB)
-            code = 'L'
-            shift = 8
-        elif bits == 32:
-            code = 'L'
-
-        if name is None:
-            parsed = None
-        else:
-            num    = bits_to_bytes(bits)
-            value  = int_from_bytes(data, endian)
-            stream = struct.pack(">HB" + code, *[addr, num, value << shift])
-            parsed = self.parse_register(name, stream)
-
-        if print:
-            self.print_register(parsed)
-
-        data.reverse()
-        logging.debug("{} [0x{}] read {} [{}]".format(name, hexstr(addr), length, " ".join(["0x"+hexstr(v) for v in data])))
-        return data, parsed
-
-    def register_write(self, name=None, addr=None, buf=[]):
-        if name != None:
-            addr, _, _ = self.find_register_by_name(name)
-
-        if addr == None:
-            raise ValueError('Must specify an name or address')
-
-        ## Need to offset the register address for USB access
-        address = addr + self.REG_BASE_DFT
-
-        ## Split 32 bit register address into the 16 bit value & index fields
-        value = address & 0xFFFF
-        index = address >> 16
-
-        try:
-            length = self.device.ctrl_transfer(REQ_OUT, self.CMD_REG_WRITE, value, index, buf)
-        except usb.core.USBError:
-            raise OSError('Unable to write to register {}'.format(addr))
-
-        if length != len(buf):
-            raise OSError('Number of bytes written to bus was {}, expected {}'.format(length, len(buf)))
-
-        return length
+            self._active_device = device.key
+            self._device_keys.append(device.key)
+    
 
     def print_register(self, data):
         meta = {}
@@ -322,71 +195,56 @@ class USBHub:
         return parsed
 
 
+    def id(self, all=False):
+        if all:
+            return [device.id() for _,device in self.devices.items()]
+
+        return self.device.id()
+
 
     def connections(self):
-        _, conn = self.register_read(name='port::connection')
-        return [conn.body[key] == 1 for key in register_keys(conn)]
+        return self.device.connections()
 
     def speeds(self):
-        _, speed = self.register_read(name='port::device_speed')
-        speeds = ['none', 'low', 'full', 'high']
-        return [speeds[speed.body[key]] for key in register_keys(speed)]
+        return self.device.speeds()
 
     def serial(self):
-        data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
-        data = [char for char in data]
-
-        if len(data) == 6:
-            data = data[0:3] + [0xFF, 0xFE] + data[3:6]
-
-        return ''.join(["%0.2X" % v for v in data])
+        return self.device.serial()
 
     def sku(self):
-        data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_SKU_ADDR, EEPROM_SKU_BYTES)
-        
-        ## Prototype units didn't have the PCB SKU programmed into the EEPROM
-        ## If EEPROM location is empty, we assume we're interacting with that hardware
-        if data[0] == 0 or data[0] == 255:
-            return 'CRR3C4'
-
-        return ''.join([chr(char) for char in data])
-
-    def id(self):
-        def get_id():
-            return [self.sku(), self.serial()]
-
-        if self._device_ids is None:
-            self._device_ids = []
-
-            for idx in range(len(self.devices)):
-                self.activate(idx)
-                self._device_ids.append(get_id())
-
-        return self._device_ids
-
-
-    def _data_state(self):
-        return self.i2c.read_i2c_block_data(MCP_I2C_ADDR, MCP_REG_GPIO, 1)[0]
+        return self.device.sku()
 
     def data_state(self):
-        value = self._data_state()
-        return ["off" if get_bit(value, idx) else "on" for idx in [7,6,5,4]]
+        return self.device.data_state()
 
     def data_enable(self, ports=[]):
-        value = self._data_state()
-
-        for port in ports:
-            value = clear_bit(value, 8-port)
-
-        self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
+        return self.device.data_enable(ports)
 
     def data_disable(self, ports=[]):
-        value = self._data_state()
+        return self.device.data_disable(ports)
 
-        for port in ports:
-            value = set_bit(value, 8-port)
+    def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
+        return self.device.register_read(name, addr, length, print, endian)
 
-        self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
+    def register_write(self, name=None, addr=None, buf=[]):
+        return self.device.register_write(name, addr, buf)
+
+    @property
+    def power(self):
+        return self.device.power
+
+    @property
+    def gpio(self):
+        return self.device.gpio
+
+    @property
+    def i2c(self):
+        return self.device.i2c
+
+    @property
+    def spi(self):
+        return self.device.spi
+    
 
     def print_permission_instructions(self):
         message = ['User has insufficient permissions to access the USB Hub.']
@@ -394,7 +252,9 @@ class USBHub:
         ## Check that this linux distro has 'udevadm' before instructing 
         ## the user on how to install udev rule.
         check = subprocess.run(["which", "udevadm"], stdout=subprocess.PIPE)
-        if check.stdout.decode("utf-8")[0] == "/":
+        check = check.stdout.decode("utf-8")
+        
+        if len(check) > 0 and check[0] == "/":
             folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
             message += [
