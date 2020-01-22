@@ -10,9 +10,6 @@ if lib_load not in sys.path:
 import capablerobot_usbhub 
 
 hub = capablerobot_usbhub.USBHub()
-hub.i2c.enable()
-
-
 last = int(time.time() * 1000)
 
 while True:
