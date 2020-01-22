@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "capablerobot_usbhub"
-version = "0.2.2"
+version = "0.2.3"
 description = "Host side driver for the Capable Robot Programmable USB Hub"
 authors = ["Chris Osterwood <osterwood@capablerobot.com>"]
 license = "MIT"
