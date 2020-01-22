@@ -35,9 +35,12 @@ class USBHubSPI(Lockable):
 
     REG_SPI_DATA  = 0x2310
 
-    def __init__(self, hub):
+    def __init__(self, hub, enable=False):
         self.hub = hub
-        self.enable()
+        self.enabled = False
+
+        if enable:
+            self.enable()
 
     def __enter__(self):
         while not self.try_lock():
@@ -49,24 +52,34 @@ class USBHubSPI(Lockable):
         return False
 
     def enable(self):
+        if self.enabled:
+            return True
+
         try:
             self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_ENABLE, 0, 0, 0)
         except usb.core.USBError:
-            logging.warn("USB Error in SPI Enter")
+            logging.warn("USB Error in SPI Enable")
             return False
 
+        self.enabled = True
         return True
 
     def disable(self):
+        if not self.enabled:
+            return True
+
         try:
             self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_DISABLE, 0, 0, 0)
         except usb.core.USBError:
-            logging.warn("USB Error in SPI Exit")
+            logging.warn("USB Error in SPI Disable")
             return False
 
+        self.enabled = False
         return True
 
     def write(self, buf, start=0, end=None):
+        if not self.enabled:
+            self.enable()
 
         if not buf:
             return
@@ -85,6 +98,8 @@ class USBHubSPI(Lockable):
         return length
 
     def readinto(self, buf, start=0, end=None, addr=''):
+        if not self.enabled:
+            self.enable()
 
         if not buf:
             return
@@ -115,6 +130,8 @@ class USBHubSPI(Lockable):
         
 
     def write_readinto(self, buffer_out, buffer_in, out_start=0, out_end=None, in_start=0, in_end=None):
+        if not self.enabled:
+            self.enable()
 
         if not buffer_out or not buffer_in:
             return
