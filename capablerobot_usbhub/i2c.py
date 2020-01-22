@@ -63,7 +63,7 @@ class USBHubI2C(Lockable):
             raise ValueError('Currently only 100 kHz I2C operation is supported')
 
         try:
-            self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_ENTER, value, 0, 0)
+            self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_ENTER, value, 0, 0)
         except usb.core.USBError:
             logging.warn("USB Error in I2C Enable")
             return False
@@ -81,7 +81,7 @@ class USBHubI2C(Lockable):
         cmd = build_value(addr=(addr << 1))
 
         try:
-            length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, list(buf))
+            length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, list(buf))
         except usb.core.USBError:
             raise OSError('Unable to setup I2C write.  Likely that slave address is incorrect')
 
@@ -94,7 +94,7 @@ class USBHubI2C(Lockable):
         # and add the start / stop flags
         cmd = build_value(addr=(addr<<1)+1)
 
-        return list(self.hub.device.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number))
+        return list(self.handle.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number))
 
     def read_i2c_block_data(self, addr, register, number=32):
         """Perform a read from the specified cmd register of device.  Length number
@@ -107,10 +107,10 @@ class USBHubI2C(Lockable):
         cmd = build_value(addr=i2c_addr, nack=False)
 
         try:
-            length = self.hub.device.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register])
+            length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register])
         except usb.core.USBError as e:
             if "permission" in str(e):
-                self.hub.print_permission_instructions()
+                self.hub.main.print_permission_instructions()
                 sys.exit(0)
             else:
                 raise OSError('Unable to setup I2C read.  Likely that slave address is incorrect')
@@ -119,7 +119,7 @@ class USBHubI2C(Lockable):
             raise OSError('Unable to setup I2C read')
 
         cmd = build_value(addr=i2c_addr+1)
-        return list(self.hub.device.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number))
+        return list(self.hub.handle.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number))
 
     def writeto(self, address, buffer, *, start=0, end=None, stop=True):
         if end is None:

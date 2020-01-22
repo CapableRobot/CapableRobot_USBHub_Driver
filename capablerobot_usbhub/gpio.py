@@ -56,7 +56,6 @@ class USBHubGPIO:
 
     def _read(self, addr):
         data, _ = self.hub.register_read(addr=addr, length=4)
-        data.reverse()
         return data
 
     def configure(self, ios=[], output=None, input=None, pull_down=None, pull_up=None, open_drain=None):
