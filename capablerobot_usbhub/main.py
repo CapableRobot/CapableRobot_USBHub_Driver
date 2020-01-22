@@ -208,11 +208,13 @@ class USBHub:
     def speeds(self):
         return self.device.speeds()
 
+    @property
     def serial(self):
-        return self.device.serial()
+        return self.device.serial
 
+    @property
     def sku(self):
-        return self.device.sku()
+        return self.device.sku
 
     def data_state(self):
         return self.device.data_state()
