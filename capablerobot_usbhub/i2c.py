@@ -94,7 +94,7 @@ class USBHubI2C(Lockable):
         # and add the start / stop flags
         cmd = build_value(addr=(addr<<1)+1)
 
-        return list(self.handle.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number))
+        return list(self.hub.handle.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number))
 
     def read_i2c_block_data(self, addr, register, number=32):
         """Perform a read from the specified cmd register of device.  Length number
