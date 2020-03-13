@@ -49,9 +49,9 @@ _CURRENT_MAPPING = [
 
 class USBHubPower:
 
-    def __init__(self, hub, i2c):
+    def __init__(self, hub):
         self.hub = hub
-        self.i2c = i2c
+        self.i2c = hub.i2c
 
     def state(self, ports=[1,2,3,4]):
         out = []
