@@ -22,6 +22,7 @@
 
 import struct
 import logging
+import weakref
 
 from .i2c import USBHubI2C
 from .spi import USBHubSPI
@@ -46,17 +47,19 @@ class USBHubDevice:
     REG_BASE_DFT = 0xBF800000
     REG_BASE_ALT = 0xBFD20000
 
-    def __init__(self, main, handle):
+    def __init__(self, main, handle, timeout=100):
         self.main = main
         self.handle = handle
 
         self._serial = None
         self._sku = None
 
-        self.i2c = USBHubI2C(self)
-        self.spi = USBHubSPI(self)
-        self.gpio = USBHubGPIO(self)
-        self.power = USBHubPower(self, self.i2c)
+        proxy = weakref.proxy(self)
+
+        self.i2c = USBHubI2C(proxy, timeout=timeout)
+        self.spi = USBHubSPI(proxy, timeout=timeout)
+        self.gpio = USBHubGPIO(proxy)
+        self.power = USBHubPower(proxy)
 
         logging.debug("I2C and Power classes created")
 

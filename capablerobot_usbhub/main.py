@@ -28,6 +28,7 @@ import time
 import logging
 import copy
 import subprocess
+import weakref
 
 import usb.core
 import usb.util
@@ -150,7 +151,7 @@ class USBHub:
             raise ValueError('No USB Hub was found')
 
         for handle in handles:
-            device = USBHubDevice(self, handle)
+            device = USBHubDevice(weakref.proxy(self), handle)
             self.devices[device.key] = device
 
             self._active_device = device.key
