@@ -35,9 +35,10 @@ class USBHubSPI(Lockable):
 
     REG_SPI_DATA  = 0x2310
 
-    def __init__(self, hub, enable=False):
+    def __init__(self, hub, enable=False, timeout=100):
         self.hub = hub
         self.enabled = False
+        self.timeout = timeout
 
         if enable:
             self.enable()
@@ -56,7 +57,7 @@ class USBHubSPI(Lockable):
             return True
 
         try:
-            self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_ENABLE, 0, 0, 0)
+            self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_ENABLE, 0, 0, 0, timeout=self.timeout)
         except usb.core.USBError:
             logging.warn("USB Error in SPI Enable")
             return False
@@ -69,7 +70,7 @@ class USBHubSPI(Lockable):
             return True
 
         try:
-            self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_DISABLE, 0, 0, 0)
+            self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_DISABLE, 0, 0, 0, timeout=self.timeout)
         except usb.core.USBError:
             logging.warn("USB Error in SPI Disable")
             return False
@@ -94,7 +95,7 @@ class USBHubSPI(Lockable):
         logging.debug("SPI Write : [{}]".format(" ".join([hex(v) for v in list(buf[start:end])])))
 
         value = end - start
-        length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_WRITE, value, 0, buf[start:end], value)
+        length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_WRITE, value, 0, buf[start:end], value, timeout=self.timeout)
         return length
 
     def readinto(self, buf, start=0, end=None, addr=''):
@@ -116,7 +117,7 @@ class USBHubSPI(Lockable):
         value = address & 0xFFFF
         index = address >> 16
 
-        data = list(self.hub.handle.ctrl_transfer(REQ_IN, self.hub.CMD_REG_READ, value, index, length))
+        data = list(self.hub.handle.ctrl_transfer(REQ_IN, self.hub.CMD_REG_READ, value, index, length, timeout=self.timeout))
 
         if length != len(data):
             raise OSError('Incorrect data length')
@@ -147,7 +148,7 @@ class USBHubSPI(Lockable):
         value = out_length + in_length
 
         try:
-            length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_WRITE, value, 0, buffer_out[out_start:out_end], out_length)
+            length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_WRITE, value, 0, buffer_out[out_start:out_end], out_length, timeout=self.timeout)
         except usb.core.USBError:
             raise OSError('Unable to setup SPI write_readinto')
 
