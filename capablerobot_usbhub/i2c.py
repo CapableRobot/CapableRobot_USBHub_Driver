@@ -96,10 +96,11 @@ class USBHubI2C(Lockable):
                 break
             except usb.core.USBError:
                 time.sleep(self.attempt_delay)
-                if attempts == 1:
-                    logging.debug("I2C : Retry Write")
+                
                 if attempts >= self.attempts_max:
                     raise OSError('Unable to perform sucessful I2C write')
+                if attempts == 1:
+                    logging.debug("I2C : Retry Write")
 
         return length
 
@@ -120,10 +121,11 @@ class USBHubI2C(Lockable):
                 break
             except usb.core.USBError:
                 time.sleep(self.attempt_delay)
-                if attempts == 1:
-                    logging.debug("I2C : Retry Read")
+                
                 if attempts >= self.attempts_max:
                     raise OSError('Unable to perform sucessful I2C read')
+                if attempts == 1:
+                    logging.debug("I2C : Retry Read")
 
         return data 
 
@@ -150,10 +152,11 @@ class USBHubI2C(Lockable):
                     sys.exit(0)
 
                 time.sleep(self.attempt_delay)
-                if attempts == 1:
-                    logging.debug("I2C : Retry Read Block")    
+                
                 if attempts >= self.attempts_max:
                     raise OSError('Unable to perform sucessful I2C read block data')
+                if attempts == 1:
+                    logging.debug("I2C : Retry Read Block")
 
         if length != 1:
             raise OSError('Unable to perform sucessful I2C read block data')
