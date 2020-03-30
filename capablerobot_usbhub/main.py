@@ -52,7 +52,7 @@ class USBHub:
 
     KEY_LENGTH = 4
 
-    def __init__(self, vendor=None, product=None):
+    def __init__(self, vendor=None, product=None, device={}):
         if vendor == None:
             vendor = self.ID_VENDOR
         if product == None:
@@ -64,6 +64,7 @@ class USBHub:
         self._device_keys = []
 
         self.backend = None
+        self.device_kwargs = device
 
         if sys.platform.startswith('win'):
             import usb.backend.libusb1
@@ -179,7 +180,7 @@ class USBHub:
             raise ValueError('No USB Hub was found')
 
         for handle in handles:
-            device = USBHubDevice(weakref.proxy(self), handle)
+            device = USBHubDevice(weakref.proxy(self), handle, **self.device_kwargs)
             self.devices[device.key] = device
 
             self._active_device = device.key
