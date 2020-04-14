@@ -247,6 +247,10 @@ class USBHub:
     @property
     def spi(self):
         return self.device.spi
+
+    @property
+    def config(self):
+        return self.device.config
     
 
     def print_permission_instructions(self):

@@ -28,6 +28,7 @@ from .i2c import USBHubI2C
 from .spi import USBHubSPI
 from .gpio import USBHubGPIO
 from .power import USBHubPower
+from .config import USBHubConfig
 from .util import *
 
 EEPROM_I2C_ADDR = 0x50
@@ -60,6 +61,7 @@ class USBHubDevice:
         self.spi = USBHubSPI(proxy, timeout=timeout)
         self.gpio = USBHubGPIO(proxy)
         self.power = USBHubPower(proxy)
+        self.config = USBHubConfig(proxy)
 
         logging.debug("I2C and Power classes created")
 

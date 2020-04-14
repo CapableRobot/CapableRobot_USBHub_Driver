@@ -6,6 +6,7 @@ meta:
     - usb4715_main
     - usb4715_port
     - usb4715_gpio
+    - usb4715_mcu
 seq:
   - id: registers
     type: register
@@ -23,6 +24,8 @@ types:
           switch-on: addr
           cases:
             0x0000: 'usb4715_main::revision'
+            0x0914: 'usb4715_mcu::control'
+            0x0924: 'usb4715_mcu::status'
             0x0900: 'usb4715_gpio::output_enable'
             0x0910: 'usb4715_gpio::input_enable'
             0x0920: 'usb4715_gpio::output'
