@@ -22,6 +22,7 @@
 
 import logging
 import sys
+import time
 
 import usb.core
 import usb.util
@@ -34,10 +35,15 @@ class USBHubI2C(Lockable):
     CMD_I2C_WRITE = 0x71
     CMD_I2C_READ  = 0x72
 
-    def __init__(self, hub, timeout=100):
+    def __init__(self, hub, timeout=100, attempts_max=5, attempt_delay=10):
         self.hub = hub
         self.enabled = False
+
         self.timeout = timeout
+
+        ## Convert from milliseconds to seconds for sleep call
+        self.attempt_delay = float(attempt_delay)/1000.0
+        self.attempts_max = attempts_max
 
         self.enable()
 
@@ -66,7 +72,6 @@ class USBHubI2C(Lockable):
         try:
             self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_ENTER, value, 0, 0, timeout=self.timeout)
         except usb.core.USBError:
-            logging.warn("USB Error in I2C Enable")
             return False
 
         self.enabled = True
@@ -81,10 +86,21 @@ class USBHubI2C(Lockable):
         # and add the start / stop flags
         cmd = build_value(addr=(addr << 1))
 
-        try:
-            length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, list(buf), timeout=self.timeout)
-        except usb.core.USBError:
-            raise OSError('Unable to setup I2C write.  Likely that slave address is incorrect')
+        attempts = 0
+        length = None
+
+        while attempts < self.attempts_max:
+            attempts += 1
+            try:
+                length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, list(buf), timeout=self.timeout)
+                break
+            except usb.core.USBError:
+                time.sleep(self.attempt_delay)
+                
+                if attempts >= self.attempts_max:
+                    raise OSError('Unable to perform sucessful I2C write')
+                if attempts == 1:
+                    logging.debug("I2C : Retry Write")
 
         return length
 
@@ -94,8 +110,24 @@ class USBHubI2C(Lockable):
         # Passed in address is in 7-bit form, so shift it
         # and add the start / stop flags
         cmd = build_value(addr=(addr<<1)+1)
+        
+        attempts = 0
+        data = None
 
-        return list(self.hub.handle.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number, timeout=self.timeout))
+        while attempts < self.attempts_max:
+            attempts += 1
+            try:
+                data = list(self.hub.handle.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number, timeout=self.timeout))
+                break
+            except usb.core.USBError:
+                time.sleep(self.attempt_delay)
+                
+                if attempts >= self.attempts_max:
+                    raise OSError('Unable to perform sucessful I2C read')
+                if attempts == 1:
+                    logging.debug("I2C : Retry Read")
+
+        return data 
 
     def read_i2c_block_data(self, addr, register, number=32):
         """Perform a read from the specified cmd register of device.  Length number
@@ -107,20 +139,29 @@ class USBHubI2C(Lockable):
         i2c_addr = addr << 1
         cmd = build_value(addr=i2c_addr, nack=False)
 
-        try:
-            length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register], timeout=self.timeout)
-        except usb.core.USBError as e:
-            if "permission" in str(e):
-                self.hub.main.print_permission_instructions()
-                sys.exit(0)
-            else:
-                raise OSError('Unable to setup I2C read.  Likely that slave address is incorrect')
+        attempts = 0
+        
+        while attempts < self.attempts_max:
+            attempts += 1
+            try:
+                length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_WRITE, cmd, 0, [register], timeout=self.timeout)
+                break
+            except usb.core.USBError as e:
+                if "permission" in str(e):
+                    self.hub.main.print_permission_instructions()
+                    sys.exit(0)
+
+                time.sleep(self.attempt_delay)
+                
+                if attempts >= self.attempts_max:
+                    raise OSError('Unable to perform sucessful I2C read block data')
+                if attempts == 1:
+                    logging.debug("I2C : Retry Read Block")
 
         if length != 1:
-            raise OSError('Unable to setup I2C read')
+            raise OSError('Unable to perform sucessful I2C read block data')
 
-        cmd = build_value(addr=i2c_addr+1)
-        return list(self.hub.handle.ctrl_transfer(REQ_IN+1, self.CMD_I2C_READ, cmd, 0, number, timeout=self.timeout))
+        return self.read_bytes(addr, number)
 
     def writeto(self, address, buffer, *, start=0, end=None, stop=True):
         if end is None:

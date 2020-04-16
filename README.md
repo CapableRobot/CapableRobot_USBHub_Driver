@@ -15,6 +15,8 @@ Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
 
 This driver requires Python 3.6 or newer.
 
+**Additional Linux Instructions**
+
 On Linux, the the udev permission system will likely prevent normal users from accessing the USB Hub's endpoint which allows for Hub Monitoring, Control, and I2C Bridging.  To resolve this, install the provided udev rule:
 
 ```
@@ -24,6 +26,17 @@ sudo udevadm trigger
 ```
 
 Then unplug and replug your USB Hub.  Note, the provided udev rule allows all system users to access the Hub, but can be changed to a specific user or user group.
+
+**Additional Windows Instructions**
+
+On Windows, the low-level USB driver for the Hub's VID/PID must be re-assigned from the default one to the libusbk driver.  This can be done with the [Zadig](https://zadig.akeo.ie) GUI, or by executing the following commands:
+
+```
+pip install capablerobot_usbregister
+usbregister device usbhub
+```
+
+For additional details on how the `usbregister` command-line utility work, please vist the [CapableRobot_USBRegister](https://github.com/CapableRobot/CapableRobot_USBRegister) repository.
 
 ## Usage & Examples
 

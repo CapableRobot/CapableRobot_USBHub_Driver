@@ -29,6 +29,7 @@ import logging
 import copy
 import subprocess
 import weakref
+import sys
 
 import usb.core
 import usb.util
@@ -51,19 +52,39 @@ class USBHub:
 
     KEY_LENGTH = 4
 
-    def __init__(self, vendor=None, product=None):
+    def __init__(self, vendor=None, product=None, device={}):
         if vendor == None:
             vendor = self.ID_VENDOR
         if product == None:
             product = self.ID_PRODUCT
 
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+
         self._active_device = None
         self._device_keys = []
+
+        self.backend = None
+        self.device_kwargs = device
+
+        if sys.platform.startswith('win'):
+            import usb.backend.libusb1
+            import platform
+
+            arch = platform.architecture()[0]
+            dllpath = os.path.abspath(os.path.join(
+                this_dir, "windows", arch, "libusb-1.0.dll")
+            )
+
+            logging.debug("Assigning pyusb {} backend".format(arch))
+
+            if not os.path.exists(dllpath):
+                logging.warn("{} was not located".format(os.path.basename(dllpath)))
+
+            self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: dllpath)
 
         self.devices = {}
         self.attach(vendor, product)
 
-        this_dir = os.path.dirname(os.path.abspath(__file__))
         self.definition = {}
 
         for file in glob.glob("%s/formats/*.ksy" % this_dir):
@@ -143,7 +164,15 @@ class USBHub:
 
     def attach(self, vendor=ID_VENDOR, product=ID_PRODUCT):
         logging.debug("Looking for USB Hubs")
-        handles = list(usb.core.find(idVendor=vendor, idProduct=product, find_all=True))
+
+        kwargs = dict(
+            idVendor=vendor, idProduct=product, find_all=True
+        )
+
+        if self.backend is not None:
+            kwargs['backend'] = self.backend
+        
+        handles = list(usb.core.find(**kwargs))
 
         logging.debug("Found {} Hub(s)".format(len(handles)))
 
@@ -151,7 +180,7 @@ class USBHub:
             raise ValueError('No USB Hub was found')
 
         for handle in handles:
-            device = USBHubDevice(weakref.proxy(self), handle)
+            device = USBHubDevice(weakref.proxy(self), handle, **self.device_kwargs)
             self.devices[device.key] = device
 
             self._active_device = device.key

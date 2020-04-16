@@ -48,7 +48,12 @@ class USBHubDevice:
     REG_BASE_DFT = 0xBF800000
     REG_BASE_ALT = 0xBFD20000
 
-    def __init__(self, main, handle, timeout=100):
+    def __init__(self, main, handle,
+        timeout           = 100,
+        i2c_attempts_max  = 5,
+        i2c_attempt_delay = 10
+    ):
+
         self.main = main
         self.handle = handle
 
@@ -57,7 +62,12 @@ class USBHubDevice:
 
         proxy = weakref.proxy(self)
 
-        self.i2c = USBHubI2C(proxy, timeout=timeout)
+        self.i2c = USBHubI2C(proxy,
+            timeout       = timeout,
+            attempts_max  = i2c_attempts_max,
+            attempt_delay = i2c_attempt_delay
+        )
+
         self.spi = USBHubSPI(proxy, timeout=timeout)
         self.gpio = USBHubGPIO(proxy)
         self.power = USBHubPower(proxy)
