@@ -75,8 +75,11 @@ def _generate_crc(data):
 
 class USBHubConfig:
 
-    def __init__(self, hub):
+    def __init__(self, hub, clear=True):
         self.hub = hub
+
+        if clear:
+            self.clear()
 
     def _read(self):
         buf, _ = self.hub.register_read(addr=_MEM_READ, length=4)
@@ -126,6 +129,10 @@ class USBHubConfig:
             time.sleep(_WAIT)
 
         self._write([cmd << 5 | name_addr, (value >> 8) & 0xFF, value & 0xFF])
+
+    def clear(self):
+        self.hub.register_write(addr=_MEM_READ,  buf=[0,0,0,0])
+        self.hub.register_write(addr=_MEM_WRITE, buf=[0,0,0,0])
 
     def device_info(self):
         return dict(
