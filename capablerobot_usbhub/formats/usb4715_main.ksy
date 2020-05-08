@@ -4,6 +4,8 @@ meta:
 types:
   revision:
     doc-ref: Table 3-4
+    meta:
+      endian: le
     seq:
       - id: device_id
         type: b16
