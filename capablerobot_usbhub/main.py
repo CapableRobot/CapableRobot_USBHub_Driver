@@ -177,7 +177,7 @@ class USBHub:
         logging.debug("Found {} Hub(s)".format(len(handles)))
 
         if handles is None or len(handles) == 0:
-            raise ValueError('No USB Hub was found')
+            raise RuntimeError('No USB Hub was found')
 
         for handle in handles:
             device = USBHubDevice(weakref.proxy(self), handle, **self.device_kwargs)
