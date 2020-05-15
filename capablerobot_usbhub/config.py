@@ -75,7 +75,7 @@ def _generate_crc(data):
 
 class USBHubConfig:
 
-    def __init__(self, hub, clear=True):
+    def __init__(self, hub, clear=False):
         self.hub = hub
 
         if clear:
