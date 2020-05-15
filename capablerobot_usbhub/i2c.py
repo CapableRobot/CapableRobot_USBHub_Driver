@@ -69,18 +69,24 @@ class USBHubI2C(Lockable):
         if freq != 100:
             raise ValueError('Currently only 100 kHz I2C operation is supported')
 
+        self.acquire_lock()
+
         try:
             self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_I2C_ENTER, value, 0, 0, timeout=self.timeout)
         except usb.core.USBError:
+            self.release_lock()
             return False
 
         self.enabled = True
 
+        self.release_lock()
         return True
 
 
     def write_bytes(self, addr, buf):
         """Write many bytes to the specified device. buf is a bytearray"""
+
+        self.acquire_lock()
 
         # Passed in address is in 7-bit form, so shift it
         # and add the start / stop flags
@@ -98,14 +104,19 @@ class USBHubI2C(Lockable):
                 time.sleep(self.attempt_delay)
                 
                 if attempts >= self.attempts_max:
+                    self.release_lock()
                     raise OSError('Unable to perform sucessful I2C write')
                 if attempts == 1:
                     logging.debug("I2C : Retry Write")
 
+        self.release_lock()
         return length
 
-    def read_bytes(self, addr, number):
+    def read_bytes(self, addr, number, try_lock=True):
         """Read many bytes from the specified device."""
+
+        if try_lock:
+            self.acquire_lock()
 
         # Passed in address is in 7-bit form, so shift it
         # and add the start / stop flags
@@ -123,16 +134,20 @@ class USBHubI2C(Lockable):
                 time.sleep(self.attempt_delay)
                 
                 if attempts >= self.attempts_max:
+                    self.release_lock()
                     raise OSError('Unable to perform sucessful I2C read')
                 if attempts == 1:
                     logging.debug("I2C : Retry Read")
 
+        self.release_lock()
         return data 
 
     def read_i2c_block_data(self, addr, register, number=32):
         """Perform a read from the specified cmd register of device.  Length number
         of bytes (default of 32) will be read and returned as a bytearray.
         """
+
+        self.acquire_lock()
 
         # Passed in address is in 7-bit form, so shift it
         # and add the start / stop flags
@@ -149,19 +164,24 @@ class USBHubI2C(Lockable):
             except usb.core.USBError as e:
                 if "permission" in str(e):
                     self.hub.main.print_permission_instructions()
+                    self.release_lock()
                     sys.exit(0)
 
                 time.sleep(self.attempt_delay)
                 
                 if attempts >= self.attempts_max:
+                    self.release_lock()
                     raise OSError('Unable to perform sucessful I2C read block data')
                 if attempts == 1:
                     logging.debug("I2C : Retry Read Block")
 
         if length != 1:
+            self.release_lock()
             raise OSError('Unable to perform sucessful I2C read block data')
-
-        return self.read_bytes(addr, number)
+            
+        ## read_bytes will release the lock created here, and
+        ## we have not release it, so there is no need to grab a new one
+        return self.read_bytes(addr, number, try_lock=False)
 
     def writeto(self, address, buffer, *, start=0, end=None, stop=True):
         if end is None:

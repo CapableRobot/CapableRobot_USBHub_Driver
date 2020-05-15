@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 import usb.util
+import threading
 
 REQ_OUT = usb.util.build_request_type(
     usb.util.CTRL_OUT,
@@ -32,23 +33,16 @@ REQ_IN = usb.util.build_request_type(
     usb.util.CTRL_TYPE_VENDOR,
     usb.util.CTRL_RECIPIENT_DEVICE)
 
+
 class Lockable():
-    """An object that must be locked to prevent collisions on a microcontroller resource."""
-    _locked = False
+    _lock = threading.Lock()
 
-    def try_lock(self):
-        """Attempt to grab the lock. Return True on success, False if the lock is already taken."""
-        if self._locked:
-            return False
-        self._locked = True
-        return True
+    def acquire_lock(self):
+        return self._lock.acquire(blocking=True)
 
-    def unlock(self):
-        """Release the lock so others may use the resource."""
-        if self._locked:
-            self._locked = False
-        else:
-            raise ValueError("Not locked")
+    def release_lock(self):
+        return self._lock.release()
+
 
 def bits_to_bytes(bits):
     return int(bits / 8)
