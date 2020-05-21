@@ -56,26 +56,36 @@ class USBHubSPI(Lockable):
         if self.enabled:
             return True
 
+        self.acquire_lock()
+
         try:
             self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_ENABLE, 0, 0, 0, timeout=self.timeout)
         except usb.core.USBError:
             logging.warn("USB Error in SPI Enable")
+            self.release_lock()
             return False
 
         self.enabled = True
+
+        self.release_lock()
         return True
 
     def disable(self):
         if not self.enabled:
             return True
 
+        self.acquire_lock()
+
         try:
             self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_DISABLE, 0, 0, 0, timeout=self.timeout)
         except usb.core.USBError:
             logging.warn("USB Error in SPI Disable")
+            self.release_lock()
             return False
 
         self.enabled = False
+
+        self.release_lock()
         return True
 
     def write(self, buf, start=0, end=None):
@@ -92,13 +102,17 @@ class USBHubSPI(Lockable):
             raise ValueError('SPI interface cannot write a buffer longer than 256 elements')
             return False
 
+        self.acquire_lock()
+
         logging.debug("SPI Write : [{}]".format(" ".join([hex(v) for v in list(buf[start:end])])))
 
         value = end - start
         length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_WRITE, value, 0, buf[start:end], value, timeout=self.timeout)
+
+        self.release_lock()
         return length
 
-    def readinto(self, buf, start=0, end=None, addr=''):
+    def readinto(self, buf, start=0, end=None, addr='', try_lock=True):
         if not self.enabled:
             self.enable()
 
@@ -117,9 +131,13 @@ class USBHubSPI(Lockable):
         value = address & 0xFFFF
         index = address >> 16
 
+        if try_lock:
+            self.acquire_lock()
+
         data = list(self.hub.handle.ctrl_transfer(REQ_IN, self.hub.CMD_REG_READ, value, index, length, timeout=self.timeout))
 
         if length != len(data):
+            self.release_lock()
             raise OSError('Incorrect data length')
 
         # 'readinto' the given buffer
@@ -127,7 +145,7 @@ class USBHubSPI(Lockable):
             buf[start+i] = data[i]
         
         logging.debug("SPI Read [{}] : [{}]".format(" ".join([hex(v) for v in addr]), " ".join([hex(v) for v in list(data)])))
-        
+        self.release_lock()
         
 
     def write_readinto(self, buffer_out, buffer_in, out_start=0, out_end=None, in_start=0, in_end=None):
@@ -147,13 +165,19 @@ class USBHubSPI(Lockable):
         out_length = out_end - out_start 
         value = out_length + in_length
 
+        self.acquire_lock()
+
         try:
             length = self.hub.handle.ctrl_transfer(REQ_OUT+1, self.CMD_SPI_WRITE, value, 0, buffer_out[out_start:out_end], out_length, timeout=self.timeout)
         except usb.core.USBError:
+            self.release_lock()
             raise OSError('Unable to setup SPI write_readinto')
 
         if length != 1:
+            self.release_lock()
             raise OSError('Incorrect response in write_readinto')
 
-        self.readinto(buffer_in, start=in_start, end=in_end, addr=list(buffer_out[out_start:out_end]))
+        ## readinto will release the lock created here, and
+        ## we have not release it, so there is no need to grab a new one
+        self.readinto(buffer_in, start=in_start, end=in_end, addr=list(buffer_out[out_start:out_end]), try_lock=False)
 
