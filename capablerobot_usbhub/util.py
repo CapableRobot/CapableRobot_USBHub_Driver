@@ -37,11 +37,25 @@ REQ_IN = usb.util.build_request_type(
 class Lockable():
     _lock = threading.Lock()
 
-    def acquire_lock(self):
-        return self._lock.acquire(blocking=True)
+    def acquire_lock(self, blocking=True, timeout=-1):
+        return self._lock.acquire(blocking=blocking, timeout=timeout)
 
     def release_lock(self):
         return self._lock.release()
+
+    ## The following two methods are expected by CircuitPython device drivers to control
+    ## access to underlying I2C / SPI hardware of a device.
+    ##
+    ## Because the Driver I2C / SPI bridges already do locking, these methods are no-ops.
+    ## If they also tried to lock & unlock, the software would dead-lock.
+
+    def try_lock(self):
+        """Attempt to grab the lock. Return True on success, False if the lock is already taken."""
+        return True
+
+    def unlock(self):
+        """Release the lock so others may use the resource."""
+        pass
 
 
 def bits_to_bytes(bits):
