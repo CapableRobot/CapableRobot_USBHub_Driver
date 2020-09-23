@@ -51,7 +51,8 @@ class USBHubDevice:
     def __init__(self, main, handle,
         timeout           = 100,
         i2c_attempts_max  = 5,
-        i2c_attempt_delay = 10
+        i2c_attempt_delay = 10,
+        disable_i2c       = False
     ):
 
         self.main = main
@@ -62,18 +63,21 @@ class USBHubDevice:
 
         proxy = weakref.proxy(self)
 
-        self.i2c = USBHubI2C(proxy,
-            timeout       = timeout,
-            attempts_max  = i2c_attempts_max,
-            attempt_delay = i2c_attempt_delay
-        )
+        if disable_i2c:
+            self.i2c = None
+        else:
+            self.i2c = USBHubI2C(proxy,
+                timeout       = timeout,
+                attempts_max  = i2c_attempts_max,
+                attempt_delay = i2c_attempt_delay
+            )
 
         self.spi = USBHubSPI(proxy, timeout=timeout)
         self.gpio = USBHubGPIO(proxy)
         self.power = USBHubPower(proxy)
         self.config = USBHubConfig(proxy)
 
-        logging.debug("I2C and Power classes created")
+        logging.debug("Device class created")
 
     def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
         if name != None:
@@ -169,6 +173,9 @@ class USBHubDevice:
 
     @property
     def serial(self):
+        if self.i2c is None:
+            return None
+
         if self._serial is None:
             data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
             data = [char for char in data]
@@ -186,10 +193,16 @@ class USBHubDevice:
    
     @property
     def key(self):
+        if self.i2c is None:
+            return self.usb_path
+
         return self.serial[-self.main.KEY_LENGTH:]
 
     @property    
     def sku(self):
+        if self.i2c is None:
+            return None
+
         if self._sku is None:
             data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_SKU_ADDR, EEPROM_SKU_BYTES)
             

@@ -61,23 +61,27 @@ def setup_logging():
     logger.addHandler(handler)
 
 @click.group()
-@click.option('--hub', 'key', default='0', help='Numeric index or key (last 4 characters of serial number) of Hub for command to operate on.')
+@click.option('--hub', 'key', default='0', help='Numeric index or key (last 4 characters of serial number) or USB path (\'bus-address\') of Hub for command to operate on.')
 @click.option('--verbose', default=False, is_flag=True, help='Increase logging level.')
-def cli(key, verbose):
+@click.option('--disable-i2c', default=False, is_flag=True, help='Disable I2C bus access.')
+def cli(key, verbose, disable_i2c):
     global hub
 
     if verbose:
         setup_logging()
         logging.debug("Logging Setup")
 
-    hub = USBHub()
+    hub = USBHub(device=dict(disable_i2c=disable_i2c))
 
-    if len(key) == hub.KEY_LENGTH:
-        ## CLI parameter is the string key of the hub, so directly use it
+    if len(key) == hub.KEY_LENGTH or "-" in key:
+        ## CLI parameter is the string key of the hub or the USB path, so directly use it
         result = hub.activate(key)
 
         if result is None:
-            print("Cannot locate Hub with serial number ending in '{}'".format(key))
+            if "-" in key:
+                print("Cannot locate Hub at USB path '{}'".format(key))
+            else:
+                print("Cannot locate Hub with serial number ending in '{}'".format(key))
             sys.exit(0)
 
     else:

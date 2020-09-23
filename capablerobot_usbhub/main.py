@@ -62,6 +62,7 @@ class USBHub:
 
         self._active_device = None
         self._device_keys = []
+        self._device_paths = []
 
         self.backend = None
         self.device_kwargs = device
@@ -155,6 +156,8 @@ class USBHub:
         else:
             if selector in self._device_keys:
                 key = selector
+            elif selector in self._device_paths:
+                key = self._device_keys[self._device_paths.index(selector)]
             else:
                 key = None
 
@@ -185,6 +188,7 @@ class USBHub:
 
             self._active_device = device.key
             self._device_keys.append(device.key)
+            self._device_paths.append(device.usb_path)
     
 
     def print_register(self, data):
