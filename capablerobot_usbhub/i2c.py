@@ -35,7 +35,7 @@ class USBHubI2C(Lockable):
     CMD_I2C_WRITE = 0x71
     CMD_I2C_READ  = 0x72
 
-    def __init__(self, hub, timeout=100, attempts_max=5, attempt_delay=10):
+    def __init__(self, hub, timeout=100, attempts_max=5, attempt_delay=10, fake_probe=True):
         self.hub = hub
         self.enabled = False
 
@@ -44,6 +44,8 @@ class USBHubI2C(Lockable):
         ## Convert from milliseconds to seconds for sleep call
         self.attempt_delay = float(attempt_delay)/1000.0
         self.attempts_max = attempts_max
+
+        self.fake_probe = fake_probe
 
         self.enable()
 
@@ -186,6 +188,11 @@ class USBHubI2C(Lockable):
     def writeto(self, address, buffer, *, start=0, end=None, stop=True):
         if end is None:
             end = len(buffer)
+
+        if self.fake_probe and buffer == b'':
+            logging.debug("I2C : skipping probe of {}".format(address))
+            return
+
         self.write_bytes(address, buffer[start:end])
 
     def readfrom_into(self, address, buffer, *, start=0, end=None, stop=True):
