@@ -181,6 +181,10 @@ class USBHubDevice:
         return self._serial
 
     @property
+    def usb_path(self):
+        return "{}-{}".format(self.handle.bus, self.handle.address)
+   
+    @property
     def key(self):
         return self.serial[-self.main.KEY_LENGTH:]
 

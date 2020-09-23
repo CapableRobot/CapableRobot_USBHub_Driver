@@ -97,15 +97,17 @@ def cli(key, verbose):
 @cli.command()
 def id():
     """Print serial number for attached hub"""
-
-    devices = hub.id(all=True)
     
-    if len(devices) > 1:
-        print("Revision / Serial")
-        for idx,dev in enumerate(devices):
-            print("    Hub {} : {} / {}".format(idx, *dev))
-    else:
-        print("Revision / Serial : {} / {}".format(*(devices[0])))
+    for idx, key in enumerate(hub.devices):
+        hub.activate(key)
+        device = hub.device
+
+        print("Hub Key  : {} ({})".format(device.key, idx))
+        print("Revision : {}".format(device.sku))
+        print("Serial   : {}".format(device.serial))
+        print("USB Path : {}".format(device.usb_path))
+
+        print()
 
 @cli.group()
 def data():
