@@ -63,14 +63,26 @@ class USBHubDevice:
 
         proxy = weakref.proxy(self)
 
-        if disable_i2c:
-            self.i2c = None
-        else:
+        ## Function to enable the I2C bus
+        ##
+        ## This is bound here so that passed-in parameters don't have
+        ## to be saved as object parameters, and we can still enable later
+        ## if we need to.
+        def enable_i2c():
             self.i2c = USBHubI2C(proxy,
                 timeout       = timeout,
                 attempts_max  = i2c_attempts_max,
                 attempt_delay = i2c_attempt_delay
             )
+
+        if disable_i2c:
+            ## For now, don't enable the I2C bus, but save the fuction to do so to a lambda.
+            ## This allows delayed enabling of the I2C bus if it is needed later
+            ## (e.g. to turn port data on and off).
+            self.i2c = None
+            self.enable_i2c = lambda : enable_i2c()
+        else:
+            enable_i2c()
 
         self.spi = USBHubSPI(proxy, timeout=timeout)
         self.gpio = USBHubGPIO(proxy)
@@ -219,6 +231,9 @@ class USBHubDevice:
         return [self.sku, self.serial]
 
     def _data_state(self):
+        if self.i2c is None:
+            self.enable_i2c()
+
         return self.i2c.read_i2c_block_data(MCP_I2C_ADDR, MCP_REG_GPIO, 1)[0]
 
     def data_state(self):
