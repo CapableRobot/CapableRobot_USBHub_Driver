@@ -145,16 +145,16 @@ class USBHubPower:
             value = self.i2c.read_i2c_block_data(i2c_addr, _PORT_STATUS, number=1)[0]
 
             if get_bit(value, 7):
-                out.append("ALERT.{}".format(idx*2+1))
-
-            if get_bit(value, 6):
                 out.append("ALERT.{}".format(idx*2+2))
 
+            if get_bit(value, 6):
+                out.append("ALERT.{}".format(idx*2+1))
+
             if get_bit(value, 5):
-                out.append("CC_MODE.{}".format(idx*2+1))
+                out.append("CC_MODE.{}".format(idx*2+2))
 
             if get_bit(value, 4):
-                out.append("CC_MODE.{}".format(idx*2+2))
+                out.append("CC_MODE.{}".format(idx*2+1))
 
 
             value = self.i2c.read_i2c_block_data(i2c_addr, _INTERRUPT1, number=1)[0]
