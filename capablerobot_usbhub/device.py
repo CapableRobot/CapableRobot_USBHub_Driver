@@ -60,6 +60,7 @@ class USBHubDevice:
 
         self._serial = None
         self._sku = None
+        self._revision = None
 
         proxy = weakref.proxy(self)
 
@@ -216,19 +217,32 @@ class USBHubDevice:
             return None
 
         if self._sku is None:
-            data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_SKU_ADDR, EEPROM_SKU_BYTES)
+            data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_SKU_ADDR, EEPROM_SKU_BYTES+1)
             
             ## Prototype units didn't have the PCB SKU programmed into the EEPROM
             ## If EEPROM location is empty, we assume we're interacting with that hardware
             if data[0] == 0 or data[0] == 255:
                 return '......'
 
-            self._sku = ''.join([chr(char) for char in data])
+            self._sku = ''.join([chr(char) for char in data[0:EEPROM_SKU_BYTES]])
+            self._revision = data[EEPROM_SKU_BYTES]
 
         return self._sku
 
+    @property
+    def mpn(self):
+        return self.sku
+
+    @property
+    def rev(self):
+        return self._revision
+
+    @property
+    def revision(self):
+        return self._revision
+
     def id(self):
-        return [self.sku, self.serial]
+        return [self.sku, self.serial, self.revision]
 
     def _data_state(self):
         if self.i2c is None:

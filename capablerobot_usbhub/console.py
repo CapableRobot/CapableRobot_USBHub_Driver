@@ -107,7 +107,8 @@ def id():
         device = hub.device
 
         print("Hub Key  : {} ({})".format(device.key, idx))
-        print("Revision : {}".format(device.sku))
+        print("MPN      : {}".format(device.mpn))
+        print("Revision : {}".format(device.revision))
         print("Serial   : {}".format(device.serial))
         print("USB Path : {}".format(device.usb_path))
 
