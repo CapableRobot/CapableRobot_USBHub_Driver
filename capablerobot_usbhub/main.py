@@ -30,6 +30,7 @@ import copy
 import subprocess
 import weakref
 import sys
+from typing import Dict
 
 import usb.core
 import usb.util
@@ -83,7 +84,7 @@ class USBHub:
 
             self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: dllpath)
 
-        self.devices = {}
+        self.devices: Dict[str, USBHubDevice] = {}
         self.attach(vendor, product)
 
         self.definition = {}
