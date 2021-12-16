@@ -99,8 +99,7 @@ class USBHubDevice:
         else:
             try:
                 name = self.main.find_register_name_by_addr(addr)
-            except ValueError as e:
-                logging.error(e)
+            except :
                 print = False
 
             bits = length * 8
@@ -219,15 +218,19 @@ class USBHubDevice:
         if self._sku is None:
             data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_SKU_ADDR, EEPROM_SKU_BYTES+1)
             
-            ## Prototype units didn't have the PCB SKU programmed into the EEPROM
-            ## If EEPROM location is empty, we assume we're interacting with that hardware
             if data[0] == 0 or data[0] == 255:
-                return '......'
+                ## Prototype units didn't have the PCB SKU programmed into the EEPROM
+                ## If EEPROM location is empty, we assume we're interacting with that hardware
+                self._sku = ['......', 0]
+            else:
+                ## Cache the SKU and the revision stored in the EEPROM
+                self._sku = [
+                    ''.join([chr(char) for char in data[0:EEPROM_SKU_BYTES]]),
+                    data[EEPROM_SKU_BYTES]
+                ]
 
-            self._sku = ''.join([chr(char) for char in data[0:EEPROM_SKU_BYTES]])
-            self._revision = data[EEPROM_SKU_BYTES]
-
-        return self._sku
+        ## Return just the SKU (not the revision value)
+        return self._sku[0]
 
     @property
     def mpn(self):
@@ -235,14 +238,35 @@ class USBHubDevice:
 
     @property
     def rev(self):
-        return self._revision
+        return self.revision
 
     @property
     def revision(self):
+        if self._revision is None:
+            ## There was a hardware change between REV 1 and REV 2 which 
+            ## necessites the host-side driver knowing of that change.
+            ## Data should be correct in EEPROM, but the on-hub firmware
+            ## puts hardware revision in this register with the format
+            ## of [REV, 'C'].  If 'C' is in the second byte, the first
+            ## byte has valid hardware information.
+            data, _ = self.register_read(addr=0x3004, length=2)
+            
+            if data[1] == ord('C'):
+                self._revision = data[0]
+            else:
+                ## Firmware has not set the revision in this address, so fall back
+                ## to pulling hardwar revision from the on-device EEPROM
+                _ = self.sku
+                self._revision = self._sku[1]
+
         return self._revision
 
     def id(self):
         return [self.sku, self.serial, self.revision]
+
+    def check_hardware_revision(self):
+        _ = self.sku
+        return self.revision == self._sku[1]
 
     def _data_state(self):
         if self.i2c is None:

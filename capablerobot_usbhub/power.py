@@ -53,22 +53,37 @@ class USBHubPower:
         self.hub = hub
         self.i2c = hub.i2c
 
+        self._control_registers = None
+
+    def control_register(self, port):
+        if self._control_registers is None:
+            # Interconnect between Hub IC power control pins and downstream power control devices
+            # changed between REV 1 and REV 2. Therefore, we have to look at the hardware revision 
+            # to know which register controls which physical port (even though the logical data 
+            # connection to the Hub IC did not change between REV 1 and REV 2)
+            if self.hub.revision >= 2:
+                self._control_registers = [_PORT_CONTROL+(port-1)*4 for port in [3,1,4,2]]
+            else:
+                self._control_registers = [_PORT_CONTROL+(port-1)*4 for port in [1,2,3,4]]
+
+        return self._control_registers[port]
+
     def state(self, ports=[1,2,3,4]):
         out = []
 
         for port in ports:
-            data, _ = self.hub.register_read(addr=_PORT_CONTROL+(port-1)*4)
+            data, _ = self.hub.register_read(addr=self.control_register(port-1))
             out.append(get_bit(data[0], 0))
 
         return out
 
     def disable(self, ports=[]):
         for port in ports:
-            self.hub.register_write(addr=_PORT_CONTROL+(port-1)*4, buf=[0x80])
+            self.hub.register_write(addr=self.control_register(port-1), buf=[0x80])
 
     def enable(self, ports=[]):
         for port in ports:
-            self.hub.register_write(addr=_PORT_CONTROL+(port-1)*4, buf=[0x81])
+            self.hub.register_write(addr=self.control_register(port-1), buf=[0x81])
 
     def measurements(self, ports=[1,2,3,4]):
         TO_MA = 13.3
