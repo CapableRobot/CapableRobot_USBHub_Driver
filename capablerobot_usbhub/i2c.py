@@ -35,7 +35,7 @@ class USBHubI2C(Lockable):
     CMD_I2C_WRITE = 0x71
     CMD_I2C_READ  = 0x72
 
-    def __init__(self, hub, timeout=100, attempts_max=5, attempt_delay=10, fake_probe=True):
+    def __init__(self, hub, timeout=1000, attempts_max=5, attempt_delay=50, fake_probe=True):
         self.hub = hub
         self.enabled = False
 
