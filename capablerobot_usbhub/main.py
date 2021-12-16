@@ -251,6 +251,14 @@ class USBHub:
     def sku(self):
         return self.device.sku
 
+    @property
+    def mpn(self):
+        return self.device.mpn
+
+    @property
+    def rev(self):
+        return self.device.rev
+
     def data_state(self):
         return self.device.data_state()
 
