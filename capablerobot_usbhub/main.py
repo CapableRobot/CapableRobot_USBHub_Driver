@@ -259,6 +259,10 @@ class USBHub:
     def rev(self):
         return self.device.rev
 
+    @property
+    def revision(self):
+        return self.device.revision
+
     def data_state(self):
         return self.device.data_state()
 
