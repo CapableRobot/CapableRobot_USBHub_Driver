@@ -261,9 +261,6 @@ class USBHubDevice:
 
         return self._revision
 
-    def id(self):
-        return [self.sku, self.serial, self.revision]
-
     def check_hardware_revision(self):
         _ = self.sku
         return self.revision == self._sku[1]

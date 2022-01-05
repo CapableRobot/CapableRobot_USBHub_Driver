@@ -229,14 +229,6 @@ class USBHub:
 
         return parsed
 
-
-    def id(self, all=False):
-        if all:
-            return [device.id() for _,device in self.devices.items()]
-
-        return self.device.id()
-
-
     def connections(self):
         return self.device.connections()
 
