@@ -11,7 +11,7 @@ This package has two functions:
 
 Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
 
-	pip install capablerobot_usbhub
+	pip install capablerobot_usbhub --upgrade
 
 This driver requires Python 3.6 or newer.
 
