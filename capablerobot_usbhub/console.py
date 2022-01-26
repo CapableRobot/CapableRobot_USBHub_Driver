@@ -96,8 +96,6 @@ def cli(key, verbose, disable_i2c):
             print("Can't attach to Hub with index {} as there only {} were detected".format(key, len(hub.devices)))
             sys.exit(0)
 
-    print()
-
 @cli.command()
 def id():
     """Print serial number for attached hub"""
