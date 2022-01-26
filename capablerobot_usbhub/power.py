@@ -90,6 +90,23 @@ class USBHubPower:
 
         out = []
 
+        if self.hub.config.version > 1:
+            if 1 in ports or 2 in ports:
+                data = self.hub.config.get("power_measure_12")
+                if 1 in ports:
+                    out.append(float(data & 0xFF) * TO_MA)
+                if 2 in ports:
+                    out.append(float((data >> 8) & 0xFF ) * TO_MA)
+
+            if 3 in ports or 4 in ports:
+                data = self.hub.config.get("power_measure_34")
+                if 3 in ports:
+                    out.append(float(data & 0xFF) * TO_MA)
+                if 4 in ports:
+                    out.append(float((data >> 8) & 0xFF ) * TO_MA)
+            
+            return out
+
         for port in ports:
             if port == 1 or port == 2:
                 i2c_addr = ADDR_USC12
@@ -108,16 +125,29 @@ class USBHubPower:
 
     def limits(self):
         out = []
-        reg_addr = _CURRENT_LIMIT
 
-        for i2c_addr in [ADDR_USC12, ADDR_USC34]:
-            value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr, number=1)[0]
+        if self.hub.config.version > 1:
+            value = self.hub.config.get("power_limits")
 
-            ## Extract Port 1 of this chip
-            out.append(value & 0b111)
+            port12 = value & 0xFF
+            port34 = (value >> 8) & 0xFF
 
-            ## Extract Port 2 of this chip
-            out.append((value >> 3) & 0b111)
+            out.append(port12 & 0b111)
+            out.append((port12 >> 3) & 0b111)
+
+            out.append(port34 & 0b111)
+            out.append((port34 >> 3) & 0b111)
+        else:
+            reg_addr = _CURRENT_LIMIT
+
+            for i2c_addr in [ADDR_USC12, ADDR_USC34]:
+                value = self.i2c.read_i2c_block_data(i2c_addr, reg_addr, number=1)[0]
+
+                ## Extract Port 1 of this chip
+                out.append(value & 0b111)
+
+                ## Extract Port 2 of this chip
+                out.append((value >> 3) & 0b111)
 
         return [_CURRENT_MAPPING[key] for key in out]
 
@@ -126,31 +156,60 @@ class USBHubPower:
             raise ValueError("Specified current limit of {} is not valid. Limits can be: {}".format(limit, _CURRENT_MAPPING))
 
         setting = _CURRENT_MAPPING.index(limit)
-        reg_addr = _CURRENT_LIMIT
 
-        if 1 in ports or 2 in ports:
-            value = self.i2c.read_i2c_block_data(ADDR_USC12, reg_addr, number=1)[0]
-            value = BitVector(value)
+        if self.hub.config.version > 1:
+            value = self.hub.config.get("power_limits")
 
-            if 1 in ports:
-                value[0:3] = setting
+            port12 = value & 0xFF
+            port34 = (value >> 8) & 0xFF
 
-            if 2 in ports:
-                value[3:6] = setting
+            if 1 in ports or 2 in ports:
+                port12 = BitVector(port12)
 
-            self.i2c.write_bytes(ADDR_USC12, bytes([reg_addr, int(value)]))
+                if 1 in ports:
+                    port12[0:3] = setting
 
-        if 3 in ports or 4 in ports:
-            value = self.i2c.read_i2c_block_data(ADDR_USC34, reg_addr, number=1)[0]
-            value = BitVector(value)
+                if 2 in ports:
+                    port12[3:6] = setting
 
-            if 3 in ports:
-                value[0:3] = setting
+            if 3 in ports or 4 in ports:
+                port34 = BitVector(port34)
 
-            if 4 in ports:
-                value[3:6] = setting
+                if 3 in ports:
+                    port34[0:3] = setting
 
-            self.i2c.write_bytes(ADDR_USC34, bytes([reg_addr, int(value)]))
+                if 4 in ports:
+                    port34[3:6] = setting
+
+            value = int(port12) + (int(port34) << 8)
+            self.hub.config.set("power_limits", value)
+
+        else:
+            reg_addr = _CURRENT_LIMIT
+
+            if 1 in ports or 2 in ports:
+                value = self.i2c.read_i2c_block_data(ADDR_USC12, reg_addr, number=1)[0]
+                value = BitVector(value)
+
+                if 1 in ports:
+                    value[0:3] = setting
+
+                if 2 in ports:
+                    value[3:6] = setting
+
+                self.i2c.write_bytes(ADDR_USC12, bytes([reg_addr, int(value)]))
+
+            if 3 in ports or 4 in ports:
+                value = self.i2c.read_i2c_block_data(ADDR_USC34, reg_addr, number=1)[0]
+                value = BitVector(value)
+
+                if 3 in ports:
+                    value[0:3] = setting
+
+                if 4 in ports:
+                    value[3:6] = setting
+
+                self.i2c.write_bytes(ADDR_USC34, bytes([reg_addr, int(value)]))
 
     def alerts(self):
         out = []

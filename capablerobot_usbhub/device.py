@@ -91,6 +91,7 @@ class USBHubDevice:
         self.config = USBHubConfig(proxy)
 
         logging.debug("Device class created")
+        logging.debug("Firmware version {} running on {}".format(self.config.version, self.config.circuitpython_version))
 
     def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
         if name != None:
@@ -266,6 +267,9 @@ class USBHubDevice:
         return self.revision == self._sku[1]
 
     def _data_state(self):
+        if self.config.version > 1:
+            return self.config.get("data_state")
+
         if self.i2c is None:
             self.enable_i2c()
 
@@ -281,7 +285,10 @@ class USBHubDevice:
         for port in ports:
             value = clear_bit(value, 8-port)
 
-        self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
+        if self.config.version > 1:
+            self.config.set("data_state", int(value))
+        else:
+            self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
 
     def data_disable(self, ports=[]):
         value = self._data_state()
@@ -289,4 +296,7 @@ class USBHubDevice:
         for port in ports:
             value = set_bit(value, 8-port)
 
-        self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
+        if self.config.version > 1:
+            self.config.set("data_state", int(value))
+        else:
+            self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))

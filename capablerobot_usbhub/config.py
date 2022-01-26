@@ -28,6 +28,7 @@ import usb.util
 
 from .util import *
 
+_MEM_IDENT = 0x0904
 _MEM_WRITE = 0x0914
 _MEM_READ  = 0x0924
 
@@ -40,24 +41,23 @@ _CMD_SET    = 0b010
 _CMD_SAVE   = 0b100
 _CMD_RESET  = 0b111
 
-
 _WAIT = 0.1
 
 _NAME_RO = [
-    "firmware_version",
-    "circuitpython_major",
-    "circuitpython_minor",
-    "circuitpython_patch"
+    'power_errors',
+    'power_measure_12',
+    'power_measure_34',
 ]
 
 _NAME_ADDR = dict(
-    firmware_version    = 0x01,
-    circuitpython_major = 0x02,
-    circuitpython_minor = 0x03,
-    circuitpython_patch = 0x04,
+    data_state          = 0x05,
+    # power_errors        = 0x06,
+    power_limits        = 0x07,
+    power_measure_12    = 0x08,
+    power_measure_34    = 0x09,
     highspeed_disable   = 0x10,
     loop_delay          = 0x11,
-    external_heartbeat  = 0x12
+    external_heartbeat  = 0x12,
 )
 
 def _generate_crc(data):
@@ -77,9 +77,26 @@ class USBHubConfig:
 
     def __init__(self, hub, clear=False):
         self.hub = hub
+        self._version = None
 
         if clear:
             self.clear()
+
+    @property
+    def version(self):
+        if self._version is None:
+            buf, _ = self.hub.register_read(addr=_MEM_IDENT, length=4)
+            self._version = buf
+
+        return self._version[0]
+
+    @property
+    def circuitpython_version(self):
+        if self._version is None:
+            buf, _ = self.hub.register_read(addr=_MEM_IDENT, length=4)
+            self._version = buf
+
+        return ".".join([str(v) for v in self._version[1:4]])
 
     def _read(self):
         buf, _ = self.hub.register_read(addr=_MEM_READ, length=4)
