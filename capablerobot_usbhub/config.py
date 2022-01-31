@@ -153,12 +153,8 @@ class USBHubConfig:
 
     def device_info(self):
         return dict(
-            firmware = self.get("firmware_version"),
-            circuitpython = (
-                self.get("circuitpython_major"),
-                self.get("circuitpython_minor"),
-                self.get("circuitpython_patch")
-            )
+            firmware = self.version,
+            circuitpython = self.circuitpython_version.split(".")
         )
 
     def reset(self, target="usb"):
