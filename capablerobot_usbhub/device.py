@@ -61,6 +61,7 @@ class USBHubDevice:
         self._serial = None
         self._sku = None
         self._revision = None
+        self._descriptor = None
 
         proxy = weakref.proxy(self)
 
@@ -93,7 +94,7 @@ class USBHubDevice:
         logging.debug("Device class created")
         logging.debug("Firmware version {} running on {}".format(self.config.version, self.config.circuitpython_version))
 
-    def register_read(self, name=None, addr=None, length=1, print=False, endian='big'):
+    def register_read(self, name=None, addr=None, length=1, print=False, endian='big', base=REG_BASE_DFT):
         if name != None:
             addr, bits, endian = self.main.find_register_by_name(name)
             length = int(bits / 8)
@@ -109,7 +110,7 @@ class USBHubDevice:
             raise ValueError('Must specify an name or address')
 
         ## Need to offset the register address for USB access
-        address = addr + self.REG_BASE_DFT
+        address = addr + base
 
         ## Split 32 bit register address into the 16 bit value & index fields
         value = address & 0xFFFF
@@ -184,10 +185,29 @@ class USBHubDevice:
         speeds = ['none', 'low', 'full', 'high']
         return [speeds[speed.body[key]] for key in register_keys(speed)]
 
+
+    def load_descriptor(self):
+        ## Recent firmware puts a shortened serial number in a register
+        ## Here we read that and will fall back to I2C-based extraction if needed
+        desc_len, _ = self.register_read(addr=0x3472, length=1, base=self.REG_BASE_ALT)
+        desc_bytes = self.register_read(addr=0x3244, length=desc_len[0], base=self.REG_BASE_ALT)
+        desc = USBHubDevice._utf16le_to_string(desc_bytes[0][2:])
+
+        if desc.startswith("CRZRYC") or desc.startswith("CRR3C4"):
+            self._descriptor = desc
+            sku_rev = desc.split(" ")[0].split(".")
+            
+            self._sku = [sku_rev[0], int(sku_rev[1])]
+            self._revision = int(sku_rev[1])
+            self._serial = desc.split(" ")[1]
+        else:
+            self._descriptor = None
+
     @property
     def serial(self):
-        if self.i2c is None:
-            return None
+        
+        if self._descriptor is None:
+            self.load_descriptor()
 
         if self._serial is None:
             data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_EUI_ADDR, EEPROM_EUI_BYTES)
@@ -206,15 +226,12 @@ class USBHubDevice:
    
     @property
     def key(self):
-        if self.i2c is None:
-            return self.usb_path
-
         return self.serial[-self.main.KEY_LENGTH:]
 
     @property    
     def sku(self):
-        if self.i2c is None:
-            return None
+        if self._descriptor is None:
+            self.load_descriptor()
 
         if self._sku is None:
             data = self.i2c.read_i2c_block_data(EEPROM_I2C_ADDR, EEPROM_SKU_ADDR, EEPROM_SKU_BYTES+1)
@@ -300,3 +317,11 @@ class USBHubDevice:
             self.config.set("data_state", int(value))
         else:
             self.i2c.write_bytes(MCP_I2C_ADDR, bytes([MCP_REG_GPIO, int(value)]))
+
+    def _utf16le_to_string(data):
+        out = ""
+
+        for idx in range(int(len(data)/2)):
+            out += chr(data[idx*2])
+
+        return out
