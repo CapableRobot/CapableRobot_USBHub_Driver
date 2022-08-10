@@ -297,6 +297,9 @@ class USBHubDevice:
         if self._sku is None:
             ## Revision loaded from device ID as EEPROM [sku, revision] data is lower
             ## priority and we don't want EEPROM rev to overwrite device ID revision info
+            ##
+            ## Running load_sku_revision_from_eeprom afterwards is okay as it checks to see
+            ## if self._revision has been set prior to assigning based on EEPROM information.
             self.load_revision_from_deviceid()
             self.load_sku_revision_from_eeprom()
 
@@ -316,6 +319,9 @@ class USBHubDevice:
         
         if self._revision is None:
             self.load_revision_from_deviceid()
+
+        if self._revision is None:
+            self.load_sku_revision_from_eeprom()
 
         return self._revision
 

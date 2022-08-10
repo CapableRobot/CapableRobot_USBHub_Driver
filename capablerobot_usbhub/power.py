@@ -61,10 +61,17 @@ class USBHubPower:
             # changed between REV 1 and REV 2. Therefore, we have to look at the hardware revision 
             # to know which register controls which physical port (even though the logical data 
             # connection to the Hub IC did not change between REV 1 and REV 2)
-            if self.hub.revision >= 2:
-                self._control_registers = [_PORT_CONTROL+(port-1)*4 for port in [3,1,4,2]]
-            else:
+            #
+            # If hub revision cannot be querried, then we assume that revision is below 2. This should
+            # be correct as all revision 2 Hubs shipped with firmware which puts revision into the 
+            # 'deviceid' register upon boot up.  All Hubs with recent firmware will put revision 
+            # into the 'deviceid' register, regardless of hardware revision.  The revision query will 
+            # fail only when I2C has been set to off, and Hub firmware is old. 
+
+            if self.hub.revision is None or self.hub.revision < 2:
                 self._control_registers = [_PORT_CONTROL+(port-1)*4 for port in [1,2,3,4]]
+            else:
+                self._control_registers = [_PORT_CONTROL+(port-1)*4 for port in [3,1,4,2]]
 
         return self._control_registers[port]
 
